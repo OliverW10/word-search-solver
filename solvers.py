@@ -61,7 +61,7 @@ class Solvers:
 					poss.append([x, y])
 		return poss
 
-	def wordSearch(grid, words, backwards = True, algo = 1):
+	def wordSearch(grid, words, backwards = True, algo = 2):
 		if algo == 1:
 			return Solvers.wordSearch1(grid, words, backwards)
 		if algo == 2:

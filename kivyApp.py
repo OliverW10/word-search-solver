@@ -4,6 +4,7 @@ from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.camera import Camera
@@ -31,7 +32,7 @@ class StartPage(GridLayout):
 		self.loadButton.bind(on_press = self.loadImage)
 		self.buttons.add_widget(self.loadButton)
 
-		self.cameraButton = Button(text = "Camera")
+		self.cameraButton = Button(text = "Camera (WIP)")
 		self.cameraButton.bind(on_press = self.launchCamera)
 		self.buttons.add_widget(self.cameraButton)
 
@@ -54,7 +55,7 @@ class SolvePage(GridLayout):
 		self.add_widget(Label(text="LETS GOOOO!!!!"))
 
 
-		self.imgWidget = Image("temp_img.png")
+		self.imgWidget = Image(source="temp_img.png")
 		self.add_widget(self.imgWidget)
 		self.img = "not set"
 
@@ -62,10 +63,10 @@ class SolvePage(GridLayout):
 		self.imgWidget = Image("temp_img.png")
 		self.add_widget(self.imgWidget)
 
-	def solve(self, img):
+	def solve(self, img, words):
 		self.img = img
 		grid, fourPoint = ImageProcessing.processImage(self.img, False)
-		words = Solvers.
+		words = Solvers.wordSearch(grid, words)
 		self.setImage(ImageProcessing.annotate(self.img, words, fourPoint))
 
 
@@ -79,7 +80,30 @@ class LoadPage(GridLayout):
 		self.add_widget(self.file_thing)
 
 	def choseFile(self, name, *args):
-		print(name)
+		self.caller.screen_manager.current = "Words"
+
+class WordsPage(FloatLayout):
+	def __init__(self, caller, **kwargs):
+		self.calller = caller
+		super().__init__(**kwargs)
+		self.cols = 1
+		self.textinput = TextInput(hint_text='Enter words', multiline=False, size_hint = (0.8, 0.1), pos_hint={"x":0.05, "y":0.85} , text_validate_unfocus = False)
+		self.textinput.bind(on_text_validate=self.addWord)
+		self.add_widget(self.textinput)
+		self.words = []
+		self.wordsWidgets = []
+
+		self.addButton = Button(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.addButton.bind(on_press = self.addWord)
+		self.add_widget(self.addButton)
+
+	def addWord(self, *args):
+		self.words.append(self.textinput.text)
+		self.textinput.text = ""
+
+		self.wordsWidgets.append(Label(text = self.words[-1], pos_hint={"x": 0.05, "y":0.5+len(self.words)-0.05}))
+		self.add_widget(self.wordsWidgets[-1])
+
 
 class CameraPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
@@ -129,8 +153,13 @@ class SolverApp(App):
 		self.screen_manager.add_widget(screen)
 
 		self.camera_screen = CameraPage(self)
-		screen = Screen(name="Camera (WIP)")
+		screen = Screen(name="Camera")
 		screen.add_widget(self.camera_screen)
+		self.screen_manager.add_widget(screen)
+
+		self.words_screen = WordsPage(self)
+		screen = Screen(name="Words")
+		screen.add_widget(self.words_screen)
 		self.screen_manager.add_widget(screen)
 
 

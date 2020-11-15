@@ -7,7 +7,8 @@ import os
 pytesseract.pytesseract.tesseract_cmd = r".\Tesseract-OCR\tesseract.exe" # the r stops the backslashes from being escape characters, i think
 config = f"--psm 12" #  -c tessedit_char_blacklist={string.punctuation}{string.digits}
 class ImageProcessing:
-	def processImage(img, draw = False): # takes a numpy image
+	# realised that i can just put a box on the screen to line up grid to to make vision a lot easier
+	def processImage(img, draw = False):
 		newImg = ImageProcessing.preProcessImg(img)
 		# print(data)
 		text = pytesseract.image_to_string(newImg, config=config)
@@ -100,7 +101,8 @@ class ImageProcessing:
 		kernel = np.ones((size, size),np.uint8)
 		return cv2.erode(image, kernel, iterations = 1)
 
-	def 
+	def annotate(image, words, fourPoint):
+		pass
 
 
 if __name__ == "__main__":
