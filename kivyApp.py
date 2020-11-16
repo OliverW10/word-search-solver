@@ -9,6 +9,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.camera import Camera
 from kivy.uix.image import Image
+from kivy.clock import Clock
 import time
 
 from solvers import Solvers
@@ -63,7 +64,7 @@ class SolvePage(GridLayout):
 		self.imgWidget = Image("temp_img.png")
 		self.add_widget(self.imgWidget)
 
-	def solve(self, img, words):
+	def solve(self, imgPath, words):
 		self.img = img
 		grid, fourPoint = ImageProcessing.processImage(self.img, False)
 		words = Solvers.wordSearch(grid, words)
@@ -81,6 +82,7 @@ class LoadPage(GridLayout):
 
 	def choseFile(self, name, *args):
 		self.caller.screen_manager.current = "Words"
+		self.caller.words_screen.setImage(name)
 
 class WordsPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
@@ -90,20 +92,36 @@ class WordsPage(FloatLayout):
 		self.textinput = TextInput(hint_text='Enter words', multiline=False, size_hint = (0.8, 0.1), pos_hint={"x":0.05, "y":0.85} , text_validate_unfocus = False)
 		self.textinput.bind(on_text_validate=self.addWord)
 		self.add_widget(self.textinput)
-		self.words = []
-		self.wordsWidgets = []
 
 		self.addButton = Button(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.addButton.bind(on_press = self.addWord)
 		self.add_widget(self.addButton)
 
+		self.words = []
+		self.wordsWidgets = []
+		self.wordsLayout = GridLayout(size_hint = (0.9, 0.7), pos_hint = {"x":0.05, "y":0.05})
+		self.wordsLayout.cols = 2
+
+		self.add_widget(self.wordsLayout)
+
+		self.continueButton = Button(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
+		self.add_widget(self.continueButton)
+
+		self.img = "not set yet"
+
 	def addWord(self, *args):
 		self.words.append(self.textinput.text)
 		self.textinput.text = ""
 
-		self.wordsWidgets.append(Label(text = self.words[-1], pos_hint={"x": 0.05, "y":0.5+len(self.words)-0.05}))
-		self.add_widget(self.wordsWidgets[-1])
+		self.wordsWidgets.append(Label(text = self.words[-1])) #  pos_hint={"center_x": 0.05, "center_y":0.675-len(self.words)*0.04})
+		self.wordsLayout.add_widget(self.wordsWidgets[-1])
 
+	def continueToSolve(self, *args):
+		self.caller.solve_screen.solve(self.img, self.words)
+		self.caller.screen_manager.current = "Solver"
+
+	def setImage(self, img): # this is the path not the actual image
+		self.img = img
 
 class CameraPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
@@ -128,8 +146,8 @@ class CameraPage(FloatLayout):
 	def takePictue(self, name = "date"):
 		img_name = time.strftime("%Y%m%d_%H%M%S")
 		self.camera.export_to_png(f"./IMG_{img_name}.png")
+		Clock
 		print("Captured "+f"./IMG_{img_name}.png")
-
 
 
 class SolverApp(App):

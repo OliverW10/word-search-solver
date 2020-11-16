@@ -8,6 +8,8 @@ pytesseract.pytesseract.tesseract_cmd = r".\Tesseract-OCR\tesseract.exe" # the r
 config = f"--psm 12" #  -c tessedit_char_blacklist={string.punctuation}{string.digits}
 class ImageProcessing:
 	# realised that i can just put a box on the screen to line up grid to to make vision a lot easier
+	def loadImg(fileName):
+		return cv2.imread(fileName)
 	def processImage(img, draw = False):
 		newImg = ImageProcessing.preProcessImg(img)
 		# print(data)
