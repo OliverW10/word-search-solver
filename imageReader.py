@@ -1,65 +1,24 @@
 import cv2
 import numpy as numpy
-import pytesseract
 import string
 import os
+import random
 
-pytesseract.pytesseract.tesseract_cmd = r".\Tesseract-OCR\tesseract.exe" # the r stops the backslashes from being escape characters, i think
-config = f"--psm 12" #  -c tessedit_char_blacklist={string.punctuation}{string.digits}
 class ImageProcessing:
+	minContourSize = 0.001
 	# realised that i can just put a box on the screen to line up grid to to make vision a lot easier
 	def loadImg(fileName):
 		return cv2.imread(fileName)
+
 	def processImage(img, draw = False):
 		newImg = ImageProcessing.preProcessImg(img)
-		# print(data)
-		text = pytesseract.image_to_string(newImg, config=config)
-		boxes = pytesseract.image_to_boxes(newImg, config=config).splitlines()
-		data = pytesseract.image_to_data(newImg, config=config, output_type = pytesseract.Output.DICT)
-
-		if len(newImg.shape) == 2:
-			h, w = newImg.shape
-		else:
-			h, w, c = newImg.shape
-
-		# print(data)
-		possibleBoxes = []
-		for b in boxes:
-			b = b.split(" ")
-			if len(b[0]) == 1 and b[0] in string.ascii_letters:
-				possibleBoxes.append(b)
-
-		# find words
-		n_boxes = len(data['text'])
-		wordBoxes = []
-		for i in range(n_boxes):
-			if int(data['conf'][i]) > 90 and len(data["text"]) > 1:
-				(x, y, w, h) = (data['left'][i], data['top'][i], data['width'][i], data['height'][i])
-				# newImg = cv2.rectangle(newImg, (x, y), (x + w, y + h), (0, 255, 0), 2)
-				font = cv2.FONT_HERSHEY_SIMPLEX
-				cv2.putText(newImg, str(data["conf"][i]),(x, y), font, 0.5,(20, 20, 20),1,cv2.LINE_AA)
-				wordBoxes.append([int(x), int(y), int(w), int(h)])
-
-		# remove letters that appear in words
-		finalBoxes = []
-		for letterBox in possibleBoxes:
-			isWord = False
-			for wordBox in wordBoxes:
-				if ImageProcessing.boxOverlap((int(letterBox[1]), int(letterBox[2]), int(letterBox[3]), int(letterBox[4])), wordBox) > 0:
-					isWord = True
-
-			if not isWord:
-				finalBoxes.append(letterBox)
-
-		for b in finalBoxes:
-			if draw:
-				newImg = cv2.rectangle(newImg, (int(b[1]), h - int(b[2])), (int(b[3]), h - int(b[4])), (0, 255, 0), 2)
+		letters, newImg = ImageProcessing.findLetters(newImg)
 		grid = []
 
 		if draw:
-			return grid, fourPoint, newImg
+			return grid, newImg
 		else:
-			return grid, fourPoint
+			return grid, newImg # just returns so it always returns two values
 
 	def boxOverlap(box1, box2):
 		# finds the total area of overlap between two rects (x, y, w, h)
@@ -72,13 +31,23 @@ class ImageProcessing:
 
 	def preProcessImg(img):
 		size = img.shape # height first
-		ratio = size[0] / size[1]
-		img = cv2.resize(img, (1000, int(1000*ratio))) # , fx = 0.5, fy = 0.5
-		
+		print(size)
 		img = ImageProcessing.get_grayscale(img)
-		img = ImageProcessing.remove_noise(img, 3)
-		img = ImageProcessing.thresholding(img, int(int(size[0]*0.05)/2)*2+1, 4) # cant do this without first greyscaling
+		img = ImageProcessing.remove_noise(img, int(int(size[0]*0.002)/2)*2+1)
+		img = ImageProcessing.thresholding(img, int(int(size[0]*0.075)/2)*2+1, 4) # cant do this without first greyscaling
 		return img
+
+	def findLetters(img):
+		# first find all contours
+		contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+		for i, cnt in enumerate(contours):
+			if cv2.contourArea(cnt) > img.shape[0]:
+				x,y,w,h = cv2.boundingRect(cnt)
+				cv2.rectangle(img,(x,y),(x+w,y+h),255,2)
+				print(cv2.contourArea(cnt), (x, y, w, h))
+		letters = []
+
+		return letters, img
 
 	# https://nanonets.com/blog/ocr-with-tesseract/
 	# get grayscale image
@@ -117,7 +86,8 @@ if __name__ == "__main__":
 	print(imageNames)
 	for i in range(5):
 		img = cv2.imread("tests/"+imageNames[i]) # "tests/originals/4.png"
-		_, img = ImageProcessing.processImage(img, True)
-		img = cv2.resize(img, None, fx = 0.5, fy = 0.5)
+		grid, img = ImageProcessing.processImage(img, True)
+		cv2.imwrite(f"{random.randint(0, 10000)}img.png", img)
+		img = cv2.resize(img, None, fx = 0.3, fy = 0.3)
 		cv2.imshow("Img", img)
 		cv2.waitKey(0)

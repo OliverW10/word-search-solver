@@ -10,6 +10,7 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.camera import Camera
 from kivy.uix.image import Image
 from kivy.clock import Clock
+from kivy.graphics import *
 import time
 
 from solvers import Solvers
@@ -133,7 +134,8 @@ class CameraPage(FloatLayout):
 		# self.title.size_hint = (1, 0.1)
 		# self.add_widget(self.title)
 
-		self.camera = Camera(play = False)
+		self.camera = Camera(play = True)
+		self.camera.play = True
 		self.add_widget(self.camera)
 		self.camera.play = True
 		self.camera.bind(on_texture=lambda x:print("new frame"))
@@ -142,6 +144,18 @@ class CameraPage(FloatLayout):
 		self.picButton = Button(text = "Take Picture", pos_hint = {"center_x":0.5, "y":0.125}, size_hint = (0.1, 0.1))
 		self.picButton.bind(on_press = self.takePictue)
 		self.add_widget(self.picButton)
+
+		self.bind(on_size=lambda _:self.makeSquare(0.1), on_pos=lambda _:self.makeSquare(0.1))
+		self.makeSquare()
+		
+	def makeSquare(self, margin=0.1):
+		with self.canvas:
+			Color(0, 1.0, 0)
+			size = min(self.width, self.height)*(0.5-margin/2) # half of the side length of the line-up square
+			midX, midY = self.width/2, self.height/2
+			print("\n\n\n self", midX, midY, "\n\n\n")
+			Line(rectangle=(midX-size, midY-size, size*2, size*2))
+
 
 	def takePictue(self, name = "date"):
 		img_name = time.strftime("%Y%m%d_%H%M%S")

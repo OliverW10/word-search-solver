@@ -56,8 +56,7 @@ if __name__ == "__main__":
     # https://www.tensorflow.org/guide/keras/save_and_serialize
     model.save("testModel1")
 
-    probability_model = keras.Sequential([model, 
-                                         keras.layers.Softmax()])
+    probability_model = keras.Sequential([model, keras.layers.Softmax()])
 
     predictions = probability_model.predict(images3[:100])
 
