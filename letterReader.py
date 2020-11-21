@@ -9,31 +9,36 @@ class LetterReader:
 
     def readLetters(self, imgs):
         # classify a list of images
-        for i in imgs:
-            i = self.preProcess(i)
+        for i, img in enumerate(imgs):
+            img = self.preProcess(img)
+        # imgs = np.array(imgs)
         probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
-        predictions = probability_model.predict(imgs / 255)
-        return np.argmax(predictions)
+        predictions = probability_model.predict(imgs)
+        choices = np.argmax(predictions)
+        return choices, [predictions[i][choices[i]] for i in range(len(predictions))]
         
     def readLetter(self, img):
         # classify a single image
         img = self.preProcess(img)
-        print(img.shape)
-        print("\n\n")
-        print(img)
         probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
-        predictions = probability_model.predict(np.expand_dims(img/255,0 ))
-        return np.argmax(predictions[0])
+        predictions = probability_model.predict(np.expand_dims(img, 0))
+        choice = np.argmax(predictions[0])
+        return choice, predictions[0][choice]
 
 
-    def preProcess(self, img):
+    def preProcess(self, img, extra = False):
+        img = np.array(img)
+        img = img / 255
         size = img.shape # height first
         
         img = cv2.resize(img, (32, 32))
         if len(size) == 3:
             img = self.get_grayscale(img)
-        img = self.remove_noise(img, 3)
-        img = self.thresholding(img, 5, 4) # cant do this without first greyscaling
+
+        if extra:
+            img = self.remove_noise(img, 3)
+            if len(size) > 3:
+                img = self.thresholding(img, 5, 4) # cant do this without first greyscaling
         return img
 
     # https://nanonets.com/blog/ocr-with-tesseract/
