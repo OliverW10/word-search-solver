@@ -10,8 +10,10 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.camera import Camera
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
+from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 from kivy.graphics import *
+from kivy.core.window import Window
 import time
 
 from solvers import Solvers
@@ -80,6 +82,7 @@ class LoadPage(GridLayout):
 		self.cols = 1
 		self.file_thing = FileChooserIconView()
 		self.file_thing.bind(on_submit=self.choseFile)
+		self.file_thing.path =  "/home/olikat/word-search-solver/tests/fulls"
 		self.add_widget(self.file_thing)
 
 	def choseFile(self, x, *args):
@@ -152,13 +155,14 @@ class CameraPage(FloatLayout):
 		Clock
 		print("Captured "+f"./IMG_{img_name}.png")
 
-class LineUpPage(FloatLayout):
+class LineUpPage(BoxLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
+		# self.size_hint = (1, 1)
 
-		self.movingLayout = Scatter()
-		self.movingLayout.auto_bring_to_front = False
+		self.movingLayout = Scatter() # size_hint = (0.9, 0.9)
+		self.movingLayout.auto_bring_to_front = True
 
 		self.imgWidget = Image(source="temp_img.png")
 
@@ -166,7 +170,8 @@ class LineUpPage(FloatLayout):
 
 		self.add_widget(self.movingLayout)
 
-		self.bind(on_size=lambda _:self.makeSquare(0.1), on_pos=lambda _:self.makeSquare(0.1))
+		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(0.1))
+		Window.bind(on_resize=lambda *args:self.makeSquare())
 		self.makeSquare()
 
 	def setImage(self, img):
@@ -177,13 +182,16 @@ class LineUpPage(FloatLayout):
 	def checkSet(self):
 		return self.imgWidget.source == "temp_img.png"
 		
-	def makeSquare(self, margin=0.1):
+	def makeSquare(self, margin=0.15):
+		print("square resizers callback called")
 		with self.canvas:
+			print(Window.size[0], Window.size[1])
+			# Color(0, 0, 0)
+			# Rectangle(pos=(0, 0), size=(Window.size[0], Window.size[1]))
+
 			Color(0, 1.0, 0)
-			print(self.width, self.height)
-			size = min(self.width, self.height)*(0.5-margin/2) # half of the side length of the line-up square
-			midX, midY = self.width/2, self.height/2
-			print("\n\n\n self", midX, midY, "\n\n\n")
+			size = min(Window.size[0], Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
+			midX, midY = Window.size[0]/2, Window.size[1]/2
 			Line(rectangle=(midX-size, midY-size, size*2, size*2))
 
 
