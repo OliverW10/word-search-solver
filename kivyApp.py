@@ -9,6 +9,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.camera import Camera
 from kivy.uix.image import Image
+from kivy.uix.scatter import Scatter
 from kivy.clock import Clock
 from kivy.graphics import *
 import time
@@ -81,9 +82,10 @@ class LoadPage(GridLayout):
 		self.file_thing.bind(on_submit=self.choseFile)
 		self.add_widget(self.file_thing)
 
-	def choseFile(self, name, *args):
-		self.caller.screen_manager.current = "Words"
-		self.caller.words_screen.setImage(name)
+	def choseFile(self, x, *args):
+		self.caller.screen_manager.current = "LineUp"
+		self.caller.line_up_screen.setImage(x.selection[0])
+		# print("chosen file: ", x.path, x.selection)
 
 class WordsPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
@@ -128,11 +130,6 @@ class CameraPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
-		self.cols = 1
-
-		# self.title = Label(text="camera")
-		# self.title.size_hint = (1, 0.1)
-		# self.add_widget(self.title)
 
 		self.camera = Camera(play = True)
 		self.camera.play = True
@@ -145,23 +142,49 @@ class CameraPage(FloatLayout):
 		self.picButton.bind(on_press = self.takePictue)
 		self.add_widget(self.picButton)
 
-		self.bind(on_size=lambda _:self.makeSquare(0.1), on_pos=lambda _:self.makeSquare(0.1))
-		self.makeSquare()
-		
-	def makeSquare(self, margin=0.1):
-		with self.canvas:
-			Color(0, 1.0, 0)
-			size = min(self.width, self.height)*(0.5-margin/2) # half of the side length of the line-up square
-			midX, midY = self.width/2, self.height/2
-			print("\n\n\n self", midX, midY, "\n\n\n")
-			Line(rectangle=(midX-size, midY-size, size*2, size*2))
-
+		self.title = Label(text="Try to get the grid flat and square-on")
+		self.title.size_hint = (1, 0.1)
+		self.add_widget(self.title)
 
 	def takePictue(self, name = "date"):
 		img_name = time.strftime("%Y%m%d_%H%M%S")
 		self.camera.export_to_png(f"./IMG_{img_name}.png")
 		Clock
 		print("Captured "+f"./IMG_{img_name}.png")
+
+class LineUpPage(FloatLayout):
+	def __init__(self, caller, **kwargs):
+		self.caller = caller
+		super().__init__(**kwargs)
+
+		self.movingLayout = Scatter()
+		self.movingLayout.auto_bring_to_front = False
+
+		self.imgWidget = Image(source="temp_img.png")
+
+		self.movingLayout.add_widget(self.imgWidget)
+
+		self.add_widget(self.movingLayout)
+
+		self.bind(on_size=lambda _:self.makeSquare(0.1), on_pos=lambda _:self.makeSquare(0.1))
+		self.makeSquare()
+
+	def setImage(self, img):
+		print("path given: ",img)
+		self.imgWidget.source = img
+		self.imgWidget.reload()
+
+	def checkSet(self):
+		return self.imgWidget.source == "temp_img.png"
+		
+	def makeSquare(self, margin=0.1):
+		with self.canvas:
+			Color(0, 1.0, 0)
+			print(self.width, self.height)
+			size = min(self.width, self.height)*(0.5-margin/2) # half of the side length of the line-up square
+			midX, midY = self.width/2, self.height/2
+			print("\n\n\n self", midX, midY, "\n\n\n")
+			Line(rectangle=(midX-size, midY-size, size*2, size*2))
 
 
 class SolverApp(App):
@@ -192,6 +215,11 @@ class SolverApp(App):
 		self.words_screen = WordsPage(self)
 		screen = Screen(name="Words")
 		screen.add_widget(self.words_screen)
+		self.screen_manager.add_widget(screen)
+
+		self.line_up_screen = LineUpPage(self)
+		screen = Screen(name="LineUp")
+		screen.add_widget(self.line_up_screen)
 		self.screen_manager.add_widget(screen)
 
 

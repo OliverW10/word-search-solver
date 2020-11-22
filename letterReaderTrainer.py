@@ -23,7 +23,7 @@ def loadDatasetNpAll(*args): # slightly higher file size but much quicker loadin
     labels = np.load("trainSetNpOne/labels.npy")
     print("load time: " + str(time.time() - readimg_start))
     return images, labels
-
+    
 if __name__ == "__main__":
     start_time = time.time()
     print("Img: ")
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     print('\nTest accuracy:', test_acc)
     # https://www.tensorflow.org/guide/keras/save_and_serialize
-    model.save("testModel1")
+    model.save("testModel2")
 
     probability_model = keras.Sequential([model, keras.layers.Softmax()])
 

@@ -2,6 +2,8 @@ import numpy as np
 from tensorflow import keras
 import cv2
 
+import random
+
 # run an already trained model on a image
 class LetterReader:
     def __init__(self, modelPath):
@@ -9,16 +11,21 @@ class LetterReader:
 
     def readLetters(self, imgs):
         # classify a list of images
+
         for i, img in enumerate(imgs):
             img = self.preProcess(img)
-        # imgs = np.array(imgs)
+        # cv2.imwrite(f"{random.randint(0, 1000)}.png", imgs[0])
         probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
         predictions = probability_model.predict(imgs)
-        choices = np.argmax(predictions)
-        return choices, [predictions[i][choices[i]] for i in range(len(predictions))]
+        choices = np.argmax(predictions, 1)
+        confs = []
+        for i in range(len(choices)):
+            confs.append(predictions[i][choices[i]])
+        return choices, confs
         
     def readLetter(self, img):
         # classify a single image
+        
         img = self.preProcess(img)
         probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
         predictions = probability_model.predict(np.expand_dims(img, 0))
@@ -31,7 +38,9 @@ class LetterReader:
         img = img / 255
         size = img.shape # height first
         
-        img = cv2.resize(img, (32, 32))
+        if size != (32, 32):
+            img = cv2.resize(img, (32, 32))
+
         if len(size) == 3:
             img = self.get_grayscale(img)
 
