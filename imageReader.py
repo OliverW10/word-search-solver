@@ -125,7 +125,8 @@ class ImageProcessing:
 
 	def cropToPos(img, pos):
 		# crop and transform to the four corners given
-		return img # not done yet
+		img[y:y+h, x:x+w]
+		return img[pos[1]:pos[1]+pos[3], pos[0]:pos[0]+pos[2]]
 
 
 

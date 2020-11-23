@@ -14,12 +14,14 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 from kivy.graphics import *
 from kivy.core.window import Window
+from kivy.graphics.transformation import Matrix
 import time
 
 from solvers import Solvers
 from imageReader import ImageProcessing
 kivy.require("1.11.1")
 
+### 1 ###
 class StartPage(GridLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -52,6 +54,7 @@ class StartPage(GridLayout):
 		print("go to camera page")
 		self.caller.screen_manager.current = "Camera"
 
+### 5 ###
 class SolvePage(GridLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -68,13 +71,13 @@ class SolvePage(GridLayout):
 		self.imgWidget = Image("temp_img.png")
 		self.add_widget(self.imgWidget)
 
-	def solve(self, imgPath, words):
+	def solve(self, imgPath, words, pos):
 		self.img = img
-		grid, fourPoint = ImageProcessing.processImage(self.img, False)
+		grid, _ = ImageProcessing.processImage(self.img, pos, False)
 		words = Solvers.wordSearch(grid, words)
 		self.setImage(ImageProcessing.annotate(self.img, words, fourPoint))
 
-
+### 2.1 ###
 class LoadPage(GridLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -90,6 +93,7 @@ class LoadPage(GridLayout):
 		self.caller.line_up_screen.setImage(x.selection[0])
 		# print("chosen file: ", x.path, x.selection)
 
+### 4 ###
 class WordsPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.calller = caller
@@ -112,8 +116,10 @@ class WordsPage(FloatLayout):
 
 		self.continueButton = Button(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
 		self.add_widget(self.continueButton)
+		self.continueButton.bind(on_press = self.continueToSolve)
 
 		self.img = "not set yet"
+		self.cropPos = "not set yet"
 
 	def addWord(self, *args):
 		self.words.append(self.textinput.text)
@@ -123,12 +129,17 @@ class WordsPage(FloatLayout):
 		self.wordsLayout.add_widget(self.wordsWidgets[-1])
 
 	def continueToSolve(self, *args):
-		self.caller.solve_screen.solve(self.img, self.words)
+		self.caller.solve_screen.solve(self.img, self.words, self.cropPos)
 		self.caller.screen_manager.current = "Solver"
 
-	def setImage(self, img): # this is the path not the actual image
-		self.img = img
+	def getSet(self):
+		return self.img == "not set yet" and self.cropPos == "not set yet"
 
+	def setStuff(self, img, pos): # this is the path not the actual image
+		self.img = img
+		self.cropPos = pos
+
+### 2.2 ###
 class CameraPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -152,9 +163,9 @@ class CameraPage(FloatLayout):
 	def takePictue(self, name = "date"):
 		img_name = time.strftime("%Y%m%d_%H%M%S")
 		self.camera.export_to_png(f"./IMG_{img_name}.png")
-		Clock
 		print("Captured "+f"./IMG_{img_name}.png")
 
+### 3 ###
 class LineUpPage(BoxLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -162,7 +173,7 @@ class LineUpPage(BoxLayout):
 		# self.size_hint = (1, 1)
 
 		self.movingLayout = Scatter() # size_hint = (0.9, 0.9)
-		self.movingLayout.auto_bring_to_front = True
+		self.movingLayout.scale = 3;
 
 		self.imgWidget = Image(source="temp_img.png")
 
@@ -172,6 +183,11 @@ class LineUpPage(BoxLayout):
 
 		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(0.1))
 		Window.bind(on_resize=lambda *args:self.makeSquare())
+
+		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.add_widget(self.continueButton)
+		self.continueButton.bind(on_press = self.continued)
+
 		self.makeSquare()
 
 	def setImage(self, img):
@@ -181,14 +197,34 @@ class LineUpPage(BoxLayout):
 
 	def checkSet(self):
 		return self.imgWidget.source == "temp_img.png"
+
+	def continued(self, *args):
+		print(self.getPos())
+		self.caller.words_screen.setStuff(self.imgWidget.source, self.getPos())
+		self.caller.screen_manager.current = "Words"
+
+	def getPos(self):
+		return self.movingLayout.transform
+
 		
 	def makeSquare(self, margin=0.15):
 		print("square resizers callback called")
+
 		with self.canvas:
 			print(Window.size[0], Window.size[1])
-			# Color(0, 0, 0)
-			# Rectangle(pos=(0, 0), size=(Window.size[0], Window.size[1]))
+			Color(0, 0, 0)
+			Rectangle(pos=(0, 0), size=(Window.size[0], Window.size[1]))
 
+		self.movingLayout.remove_widget(self.imgWidget)
+		self.movingLayout.add_widget(self.imgWidget)
+
+		self.remove_widget(self.movingLayout)
+		self.add_widget(self.movingLayout)
+
+		self.remove_widget(self.continueButton)
+		self.add_widget(self.continueButton)
+
+		with self.canvas:
 			Color(0, 1.0, 0)
 			size = min(Window.size[0], Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
 			midX, midY = Window.size[0]/2, Window.size[1]/2
