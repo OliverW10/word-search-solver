@@ -166,28 +166,33 @@ class CameraPage(FloatLayout):
 		print("Captured "+f"./IMG_{img_name}.png")
 
 ### 3 ###
-class LineUpPage(BoxLayout):
+class LineUpPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
 		# self.size_hint = (1, 1)
 
-		self.movingLayout = Scatter() # size_hint = (0.9, 0.9)
-		self.movingLayout.scale = 3;
-
-		self.imgWidget = Image(source="temp_img.png")
-
-		self.movingLayout.add_widget(self.imgWidget)
-
+		self.movingLayout = Scatter()
 		self.add_widget(self.movingLayout)
+
+		self.imgScatter = Scatter() # only so that it can be roated 90 degrees
+		self.imgWidget = Image(source="temp_img.png", size_hint = (1.0, 1.0))
+
+		self.imgScatter.add_widget(self.imgWidget)
+		self.imgScatter.rotation = 270
+		self.imgScatter.scale = 4
+		self.imgScatter.do_rotation = False
+		self.imgScatter.do_translation = False
+		self.imgScatter.do_scale = False
+
+		self.add_widget(self.imgScatter)
+
+		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		# self.add_widget(self.continueButton)
+		self.continueButton.bind(on_press = self.continued)
 
 		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(0.1))
 		Window.bind(on_resize=lambda *args:self.makeSquare())
-
-		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
-		self.add_widget(self.continueButton)
-		self.continueButton.bind(on_press = self.continued)
-
 		self.makeSquare()
 
 	def setImage(self, img):
@@ -209,22 +214,9 @@ class LineUpPage(BoxLayout):
 		
 	def makeSquare(self, margin=0.15):
 		print("square resizers callback called")
-
-		with self.canvas:
+		self.movingLayout.canvas.clear()
+		with self.movingLayout.canvas:
 			print(Window.size[0], Window.size[1])
-			Color(0, 0, 0)
-			Rectangle(pos=(0, 0), size=(Window.size[0], Window.size[1]))
-
-		self.movingLayout.remove_widget(self.imgWidget)
-		self.movingLayout.add_widget(self.imgWidget)
-
-		self.remove_widget(self.movingLayout)
-		self.add_widget(self.movingLayout)
-
-		self.remove_widget(self.continueButton)
-		self.add_widget(self.continueButton)
-
-		with self.canvas:
 			Color(0, 1.0, 0)
 			size = min(Window.size[0], Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
 			midX, midY = Window.size[0]/2, Window.size[1]/2
