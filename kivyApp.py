@@ -15,6 +15,8 @@ from kivy.clock import Clock
 from kivy.graphics import *
 from kivy.core.window import Window
 from kivy.graphics.transformation import Matrix
+from kivy.lang.builder import Builder
+from kivy.properties import *
 import time
 
 from solvers import Solvers
@@ -96,7 +98,7 @@ class LoadPage(GridLayout):
 ### 4 ###
 class WordsPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
-		self.calller = caller
+		self.caller = caller
 		super().__init__(**kwargs)
 		self.cols = 1
 		self.textinput = TextInput(hint_text='Enter words', multiline=False, size_hint = (0.8, 0.1), pos_hint={"x":0.05, "y":0.85} , text_validate_unfocus = False)
@@ -165,30 +167,37 @@ class CameraPage(FloatLayout):
 		self.camera.export_to_png(f"./IMG_{img_name}.png")
 		print("Captured "+f"./IMG_{img_name}.png")
 
+Builder.load_string('''
+<RotatedImage>:
+    canvas.before:
+        PushMatrix
+        Rotate:
+            angle: root.angle
+            axis: 0, 0, 1
+            origin: root.center
+    canvas.after:
+        PopMatrix
+''')
+
+class RotatedImage(Image):
+    angle = NumericProperty()
+
 ### 3 ###
 class LineUpPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
 		# self.size_hint = (1, 1)
+		self.imgWidget = RotatedImage(source="temp_img.png", size_hint = (1.0, 1.0))
+		self.imgWidget.angle = 270 # to rotate backwards 90 degrees
+		self.add_widget(self.imgWidget)
 
 		self.movingLayout = Scatter()
+		self.movingLayout.do_rotation = False
 		self.add_widget(self.movingLayout)
 
-		self.imgScatter = Scatter() # only so that it can be roated 90 degrees
-		self.imgWidget = Image(source="temp_img.png", size_hint = (1.0, 1.0))
-
-		self.imgScatter.add_widget(self.imgWidget)
-		self.imgScatter.rotation = 270
-		self.imgScatter.scale = 4
-		self.imgScatter.do_rotation = False
-		self.imgScatter.do_translation = False
-		self.imgScatter.do_scale = False
-
-		self.add_widget(self.imgScatter)
-
 		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
-		# self.add_widget(self.continueButton)
+		self.add_widget(self.continueButton)
 		self.continueButton.bind(on_press = self.continued)
 
 		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(0.1))
