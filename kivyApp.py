@@ -1,3 +1,9 @@
+# import logging
+# logging.getLogger("kivy").setLevel(logging.ERROR)
+# logging.getLogger("keras").setLevel(logging.ERROR)
+import os
+# os.environ["KIVY_NO_CONSOLELOG"] = "1"
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import kivy
 from kivy.app import App
 from kivy.uix.label import Label
@@ -18,6 +24,7 @@ from kivy.graphics.transformation import Matrix
 from kivy.lang.builder import Builder
 from kivy.properties import *
 import time
+import numpy as np
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -67,17 +74,19 @@ class SolvePage(GridLayout):
 
 		self.imgWidget = Image(source="temp_img.png")
 		self.add_widget(self.imgWidget)
-		self.img = "not set"
+		self.imgPath = "not set"
 
 	def setImage(self, img):
-		self.imgWidget = Image("temp_img.png")
-		self.add_widget(self.imgWidget)
-
+		self.imgWidget.source = "temp_img.png"
+		self.imgWidget.reload()
+		
 	def solve(self, imgPath, words, pos):
-		self.img = img
-		grid, _ = ImageProcessing.processImage(self.img, pos, False)
+		self.imgPath = imgPath
+		self.img = ImageProcessing.loadImg(self.imgPath)
+		grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
+		print(grid)
 		words = Solvers.wordSearch(grid, words)
-		self.setImage(ImageProcessing.annotate(self.img, words, fourPoint))
+		self.setImage(ImageProcessing.annotate(self.img, words, pos))
 
 ### 2.1 ###
 class LoadPage(GridLayout):
@@ -132,7 +141,7 @@ class WordsPage(FloatLayout):
 
 	def continueToSolve(self, *args):
 		self.caller.solve_screen.solve(self.img, self.words, self.cropPos)
-		self.caller.screen_manager.current = "Solver"
+		self.caller.screen_manager.current = "Solve"
 
 	def getSet(self):
 		return self.img == "not set yet" and self.cropPos == "not set yet"
@@ -147,8 +156,7 @@ class CameraPage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 
-		self.camera = Camera(play = True)
-		self.camera.play = True
+		self.camera = Camera(play = False)
 		self.add_widget(self.camera)
 		self.camera.play = True
 		self.camera.bind(on_texture=lambda x:print("new frame"))
@@ -166,6 +174,12 @@ class CameraPage(FloatLayout):
 		img_name = time.strftime("%Y%m%d_%H%M%S")
 		self.camera.export_to_png(f"./IMG_{img_name}.png")
 		print("Captured "+f"./IMG_{img_name}.png")
+
+	def cameraOn(self):
+		self.camera.play = True
+
+	def cameraOff(self):
+		self.camera.play = False
 
 Builder.load_string('''
 <RotatedImage>:
@@ -193,16 +207,17 @@ class LineUpPage(FloatLayout):
 		self.add_widget(self.imgWidget)
 
 		self.movingLayout = Scatter()
-		self.movingLayout.do_rotation = False
+		# self.movingLayout.do_rotation = False
 		self.add_widget(self.movingLayout)
 
 		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.add_widget(self.continueButton)
 		self.continueButton.bind(on_press = self.continued)
 
-		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(0.1))
-		Window.bind(on_resize=lambda *args:self.makeSquare())
-		self.makeSquare()
+		self.squareMargin = 0.1
+		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
+		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
+		self.makeSquare(self.squareMargin)
 
 	def setImage(self, img):
 		print("path given: ",img)
@@ -213,15 +228,33 @@ class LineUpPage(FloatLayout):
 		return self.imgWidget.source == "temp_img.png"
 
 	def continued(self, *args):
-		print(self.getPos())
-		self.caller.words_screen.setStuff(self.imgWidget.source, self.getPos())
+		print(self.getPosCv())
+		self.caller.words_screen.setStuff(self.imgWidget.source, self.getPosCv())
 		self.caller.screen_manager.current = "Words"
 
-	def getPos(self):
-		return self.movingLayout.transform
+	def getPosKivy(self):
+		# gets the coordinates of each corner of the line-up square with the origin being bottom left
+		size = min(Window.size[0], Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
+		midX, midY = Window.size[0]/2, Window.size[1]/2
+		topLeft = self.movingLayout.to_parent(midX-size, midY+size)
+		topRight = self.movingLayout.to_parent(midX+size, midY+size)
+		bottomLeft = self.movingLayout.to_parent(midX-size, midY-size)
+		bottomRight = self.movingLayout.to_parent(midX+size, midY-size)
+		return topLeft, topRight, bottomRight, bottomLeft
 
-		
-	def makeSquare(self, margin=0.15):
+	def getPosCv(self):
+		print("image pos/size: ", self.imgWidget.pos, self.imgWidget.size)
+		# gets the coordinates of each corner of the line-up square with the origin being top left
+		size = min(Window.size[0], Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
+		midX, midY = Window.size[0]/2, Window.size[1]/2
+		# origin is bottom left
+		topLeft = np.array(self.movingLayout.to_parent(midX-size, midY-size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
+		topRight = np.array(self.movingLayout.to_parent(midX+size, midY-size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
+		bottomLeft = np.array(self.movingLayout.to_parent(midX-size, midY+size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
+		bottomRight = np.array(self.movingLayout.to_parent(midX+size, midY+size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
+		return topLeft, topRight, bottomRight, bottomLeft
+
+	def makeSquare(self, margin):
 		print("square resizers callback called")
 		self.movingLayout.canvas.clear()
 		with self.movingLayout.canvas:
@@ -254,6 +287,8 @@ class SolverApp(App):
 
 		self.camera_screen = CameraPage(self)
 		screen = Screen(name="Camera")
+		self.camera_screen.bind(on_pre_enter=self.camera_screen.cameraOn)
+		self.camera_screen.bind(on_pre_leave=self.camera_screen.cameraOff)
 		screen.add_widget(self.camera_screen)
 		self.screen_manager.add_widget(screen)
 

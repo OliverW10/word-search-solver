@@ -16,16 +16,20 @@ class ImageProcessing:
 	def loadImg(fileName):
 		return cv2.imread(fileName)
 
-	def processImage(img, pos, draw = False):
+	def processImage(img, pos, debug = False):
 		newImg = ImageProcessing.preProcessImg(img)
 		croppedImg = ImageProcessing.cropToPos(newImg, pos)
-		letters, letterImg = ImageProcessing.findLetters(croppedImg)
-		grid = []
+		smallImg = cv2.resize(croppedImg, None, fx = 0.1, fy = 0.1)
+		cv2.imshow("cropped image", smallImg)
+		# smallImg2 = cv2.resize(newImg, None, fx = 0.3, fy = 0.3)
+		# cv2.imshow("cropped image2", smallImg2)
+		cv2.waitKey()
+		grid, letters, letterImg = ImageProcessing.findLetters(croppedImg, debug)
 
-		if draw:
-			return grid, letterImg
+		if debug:
+			return grid, letters, letterImg
 		else:
-			return grid, letterImg # just returns so it always returns two values
+			return grid, letters, letterImg
 
 	def boxOverlap(box1, box2, amount):
 		# finds the total area of overlap between two rects (x, y, w, h)
@@ -46,8 +50,9 @@ class ImageProcessing:
 		img = ImageProcessing.thresholding(img, int(int(size[0]*0.075)/2)*2+1, 4) # cant do this without first greyscaling
 		return img
 
-	def findLetters(img):
-		drawImg = img.copy()
+	def findLetters(img, debug = False):
+		if debug:
+			drawImg = img.copy()
 
 		# first find all contours that big enough to be letters
 		lettersContours = []
@@ -79,13 +84,14 @@ class ImageProcessing:
 			y = int(midY - maxSize/2)
 			w = int(maxSize)
 			h = int(maxSize)
-			cv2.rectangle(drawImg,(x,y),(x+w,y+h), 20, 3)
+			if debug:
+				cv2.rectangle(drawImg,(x,y),(x+w,y+h), 20, 3)
 			crop = img[y:y+h, x:x+w]
 			if crop.shape[0] > 3 and crop.shape[1] > 3:
 				if i-len(badCnts) == 0:
 					avgSize = cv2.contourArea(cnt)
 				else:
-					avgSize = ( avgSize * i-len(badCnts) + cv2.contourArea(cnt) ) / i-len(badCnts)
+					avgSize = ( (avgSize * i-len(badCnts)-1) + cv2.contourArea(cnt) ) / i-len(badCnts)
 				letterPositions[i] = [x, y, w, h]
 				letterImgs[i] = cv2.resize(crop, (32, 32))
 			else:
@@ -104,12 +110,15 @@ class ImageProcessing:
 		# combine the letters, their positions and the confidence
 		lettersPlus = []
 		for i in range(len(letters)):
-			lettersPlus.append( (string.ascii_letters[letters[i]], letterPositions[i], confs[i]) )
-			drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
+			isBad = i in badCnts
+			lettersPlus.append( (string.ascii_letters[letters[i]], letterPositions[i], confs[i], isBad) )
+			if debug:
+				drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
 
 		# last pass of removing false-positives
-		for n in badCnts:
-			del lettersPlus[n]
+		# for n in badCnts:
+		# 	del lettersPlus[n]
+		lettersPlus = list(filter(lambda x:x[3] == False, lettersPlus))
 
 		# position all letters in grid
 		grid = []
@@ -117,18 +126,36 @@ class ImageProcessing:
 		for row in range(gridSize):
 			rowLettersPlus = sorted( YsortedLetters[row*gridSize : (row+1)*gridSize] , key = lambda x:x[1][0] )
 			rowLetters = [letter[0] for letter in rowLettersPlus]
-			print(rowLetters)
+			# print(rowLetters)
 			grid.append(rowLetters)
 			# del YsortedLetters[row*gridSize : (row+1)*gridSize]
 		# print(grid)
-		return letters, drawImg
 
-	def cropToPos(img, pos):
+		if debug:
+			return grid, lettersPlus, drawImg
+		else:
+			return grid, lettersPlus, np.zeros((10, 10))
+
+	def cropToRect(img, rect):
 		# crop and transform to the four corners given
 		img[y:y+h, x:x+w]
-		return img[pos[1]:pos[1]+pos[3], pos[0]:pos[0]+pos[2]]
+		return img[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
 
+	def cropToPos(img, pos):
+		print("average colour ",ImageProcessing.getAvgCol(img))
 
+		srcTri = np.array( [pos[0], pos[1], pos[2]] ).astype(np.float32) * np.array([img.shape[1], img.shape[0]]).astype(np.float32)
+		dstTri = np.array( [[0, 0], [1, 0], [1, 1]] ).astype(np.float32) * np.array([img.shape[1], img.shape[0]]).astype(np.float32)
+
+		warp_mat = cv2.getAffineTransform(srcTri, dstTri)
+		warp_dst = cv2.warpAffine(img, warp_mat, (img.shape[1], img.shape[0]))
+		print(type(warp_dst), warp_dst.shape, warp_dst.dtype)
+		print(type(img), img.shape, img.dtype)
+		return warp_dst
+
+	def getAvgCol(img):
+		# for greyscale images
+		return np.sum(img)/(img.shape[0]*img.shape[1])
 
 	# https://nanonets.com/blog/ocr-with-tesseract/
 	# get grayscale image
@@ -153,7 +180,7 @@ class ImageProcessing:
 		kernel = np.ones((size, size),np.uint8)
 		return cv2.erode(image, kernel, iterations = 1)
 
-	def annotate(img, words):
+	def annotate(img, wordsPos, warpPos):
 		pass
 
 if __name__ == "__main__":
@@ -166,7 +193,7 @@ if __name__ == "__main__":
 	# print(imageNames)
 	for i in range(5):
 		img = cv2.imread("tests/"+imageNames[i]) # "tests/originals/4.png"
-		grid, img = ImageProcessing.processImage(img, [[0, 0], [0, 1], [1, 0], [1,1]], True)
+		grid, letters, img = ImageProcessing.processImage(img, [[0, 0], [1, 0], [1, 1]], True)
 		cv2.imwrite("results/"+imageNames[i], img)
 		img = cv2.resize(img, None, fx = 0.3, fy = 0.3)
 		

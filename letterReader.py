@@ -1,5 +1,7 @@
 import numpy as np
 from tensorflow import keras
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import cv2
 
 import random
@@ -11,10 +13,9 @@ class LetterReader:
 
     def readLetters(self, imgs):
         # classify a list of images
-
         for i, img in enumerate(imgs):
             img = self.preProcess(img)
-        # cv2.imwrite(f"{random.randint(0, 1000)}.png", imgs[0])
+        #cv2.imwrite(f"{random.randint(0, 1000)}.png", imgs[0])
         probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
         predictions = probability_model.predict(imgs)
         choices = np.argmax(predictions, 1)
