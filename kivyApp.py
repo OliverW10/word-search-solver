@@ -23,8 +23,10 @@ from kivy.core.window import Window
 from kivy.graphics.transformation import Matrix
 from kivy.lang.builder import Builder
 from kivy.properties import *
+from kivy.graphics.texture import Texture
 import time
 import numpy as np
+import image_to_numpy
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -79,7 +81,7 @@ class SolvePage(GridLayout):
 	def setImage(self, img):
 		self.imgWidget.source = "temp_img.png"
 		self.imgWidget.reload()
-		
+
 	def solve(self, imgPath, words, pos):
 		self.imgPath = imgPath
 		self.img = ImageProcessing.loadImg(self.imgPath)
@@ -201,13 +203,10 @@ class LineUpPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
-		# self.size_hint = (1, 1)
-		self.imgWidget = RotatedImage(source="temp_img.png", size_hint = (1.0, 1.0))
-		self.imgWidget.angle = 270 # to rotate backwards 90 degrees
-		self.add_widget(self.imgWidget)
+		self.imgFilename = "temp_img.png"
 
 		self.movingLayout = Scatter()
-		# self.movingLayout.do_rotation = False
+		self.movingLayout.do_rotation = False
 		self.add_widget(self.movingLayout)
 
 		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
@@ -217,23 +216,26 @@ class LineUpPage(FloatLayout):
 		self.squareMargin = 0.1
 		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
 		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
+		self.createImgTexture()
 		self.makeSquare(self.squareMargin)
 
 	def setImage(self, img):
 		print("path given: ",img)
-		self.imgWidget.source = img
-		self.imgWidget.reload()
+		self.imgFilename = img
+		self.createImgTexture()
+		self.makeSquare(self.squareMargin)
 
 	def checkSet(self):
-		return self.imgWidget.source == "temp_img.png"
+		return imgFilename != "temp_img.png"
 
 	def continued(self, *args):
 		print(self.getPosCv())
-		self.caller.words_screen.setStuff(self.imgWidget.source, self.getPosCv())
-		self.caller.screen_manager.current = "Words"
+		if self.checkSet:
+			self.caller.words_screen.setStuff(self.imgFilename, self.getPosCv())
+			self.caller.screen_manager.current = "Words"
 
 	def getPosKivy(self):
-		# gets the coordinates of each corner of the line-up square with the origin being bottom left
+		# gets the coordinates of each corner of the line-up square with the origin being bottom left in pixels
 		size = min(Window.size[0], Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
 		midX, midY = Window.size[0]/2, Window.size[1]/2
 		topLeft = self.movingLayout.to_parent(midX-size, midY+size)
@@ -243,19 +245,44 @@ class LineUpPage(FloatLayout):
 		return topLeft, topRight, bottomRight, bottomLeft
 
 	def getPosCv(self):
-		print("image pos/size: ", self.imgWidget.pos, self.imgWidget.size)
-		# gets the coordinates of each corner of the line-up square with the origin being top left
+		# gets the coordinates of each corner of the line-up square with the origin being top left as a percentage of the window size
 		size = min(Window.size[0], Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
 		midX, midY = Window.size[0]/2, Window.size[1]/2
 		# origin is bottom left
-		topLeft = np.array(self.movingLayout.to_parent(midX-size, midY-size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
-		topRight = np.array(self.movingLayout.to_parent(midX+size, midY-size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
-		bottomLeft = np.array(self.movingLayout.to_parent(midX-size, midY+size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
-		bottomRight = np.array(self.movingLayout.to_parent(midX+size, midY+size)) / np.array([self.imgWidget.size[1], self.imgWidget.size[0]])
+		topLeft = np.array(self.movingLayout.to_parent(midX-size, midY-size)) / np.array([Window.size[0], Window.size[1]])
+		topRight = np.array(self.movingLayout.to_parent(midX+size, midY-size)) / np.array([Window.size[0], Window.size[1]])
+		bottomLeft = np.array(self.movingLayout.to_parent(midX-size, midY+size)) / np.array([Window.size[0], Window.size[1]])
+		bottomRight = np.array(self.movingLayout.to_parent(midX+size, midY+size)) / np.array([Window.size[0], Window.size[1]])
 		return topLeft, topRight, bottomRight, bottomLeft
+
+	def createImgTexture(self, source = False):
+		if source != False:
+			self.imgFilename = source
+		if self.checkSet:
+			self.imgNp = ImageProcessing.loadImg(self.imgFilename).astype(np.uint8)
+			self.imgNp = np.flip(self.imgNp)
+			self.imgBuf = self.imgNp.tostring()
+			self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
+			self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
+			return True
+		else:
+			return False
 
 	def makeSquare(self, margin):
 		print("square resizers callback called")
+		print("window size: ", Window.size)
+
+		self.canvas.clear()
+		with self.canvas:
+			Rectangle(pos=(0, 0), size=(Window.size[0], Window.size[1]), texture = self.imgTex)
+			Color(1.0, 0, 0)
+			pos = self.getPosKivy()
+			for p in pos:
+				Line(circle=(p[0], p[1], 25))
+
+			Color(1.0, 1.0, 1.0)
+
+		self.remove_widget(self.movingLayout)
 		self.movingLayout.canvas.clear()
 		with self.movingLayout.canvas:
 			print(Window.size[0], Window.size[1])
@@ -263,6 +290,11 @@ class LineUpPage(FloatLayout):
 			size = min(Window.size[0], Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
 			midX, midY = Window.size[0]/2, Window.size[1]/2
 			Line(rectangle=(midX-size, midY-size, size*2, size*2))
+		self.add_widget(self.movingLayout)
+
+		self.remove_widget(self.continueButton)
+		self.add_widget(self.continueButton)
+
 
 
 class SolverApp(App):

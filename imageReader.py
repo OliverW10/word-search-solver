@@ -4,6 +4,8 @@ import string
 import os
 import random
 from letterReader import LetterReader
+import image_to_numpy
+
 
 class ImageProcessing:
 	# both as a multiple of the image size
@@ -14,16 +16,15 @@ class ImageProcessing:
 	minBoxSize = 0
 
 	def loadImg(fileName):
-		return cv2.imread(fileName)
+		return image_to_numpy.load_image_file(fileName)
 
 	def processImage(img, pos, debug = False):
 		newImg = ImageProcessing.preProcessImg(img)
 		croppedImg = ImageProcessing.cropToPos(newImg, pos)
 		smallImg = cv2.resize(croppedImg, None, fx = 0.1, fy = 0.1)
 		cv2.imshow("cropped image", smallImg)
-		# smallImg2 = cv2.resize(newImg, None, fx = 0.3, fy = 0.3)
-		# cv2.imshow("cropped image2", smallImg2)
 		cv2.waitKey()
+		cv2.destroyAllWindows()
 		grid, letters, letterImg = ImageProcessing.findLetters(croppedImg, debug)
 
 		if debug:
