@@ -244,7 +244,7 @@ class LineUpPage(FloatLayout):
 		self.continueButton.bind(on_press = self.continued)
 
 		self.squareMargin = 0.1
-		self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
+		# self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
 		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
 		self.createImgTexture()
 		self.makeSquare(self.squareMargin)

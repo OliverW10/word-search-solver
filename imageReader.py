@@ -9,7 +9,7 @@ import image_to_numpy
 
 class ImageProcessing:
 	# both as a multiple of the image size
-	minContourSize = 0.02
+	minContourSize = 0.0001
 	maxContourSize = 0.1
 
 	maxBoxSize = 1
@@ -65,15 +65,17 @@ class ImageProcessing:
 		lettersContours = []
 		contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 		for i, cnt in enumerate(contours):
-			x,y,w,h = cv2.boundingRect(cnt)
+			x,y,w,h = cv2.boundingRect(cnt) 
 			if ImageProcessing.maxContourSize > cv2.contourArea(cnt)/(img.shape[0]*img.shape[1]) > ImageProcessing.minContourSize:
 				# drawImg = cv2.putText(drawImg, str(round((cv2.contourArea(cnt)/img.shape[0]), 2)), (x, y), cv2.FONT_HERSHEY_SIMPLEX , 1, 0, 1, cv2.LINE_AA) 
 				# cv2.rectangle(drawImg,(x,y),(x+w,y+h), 20, 3)
 				lettersContours.append(cnt)
 
+		if len(lettersContours) < 5:
+			print("\n\n\n NO LETTERS FOUND \n\n")
 		# use the among of found contuors to determin the size of the grid
 		gridSize = round(len(lettersContours) ** 0.5)
-		print("\n\ngridSize: ", gridSize)
+		print("\ngridSize: ", gridSize)
 
 		# go through every contour and get the section of img around it
 		# done first so that they can be keras'ed as a batch
@@ -100,9 +102,9 @@ class ImageProcessing:
 				cntSize = cv2.contourArea(cnt) / (img.shape[0] * img.shape[1])
 				# keep track of the average
 				if i-len(badCnts) == 0:
-					avgSize = cv2.contourArea(cnt)
+					avgSize = cntSize
 				else:
-					avgSize = ( (avgSize * i-len(badCnts)-1) + cv2.contourArea(cnt) ) / i-len(badCnts)
+					avgSize = ( (avgSize * i-len(badCnts)) + cntSize ) / (i-len(badCnts)+1)
 
 				# save the box position and the image
 				letterPositions[i] = [x, y, w, h]
@@ -118,8 +120,8 @@ class ImageProcessing:
 			for i2, rect2 in enumerate(letterPositions):
 				if i1 != i2:
 					if ImageProcessing.boxCollide(rect1, rect2):
-						cnt1Size = cv2.contourArea(letterContours[i1]) / (img.shape[0] * img.shape[1])
-						cnt2Size = cv2.contourArea(letterContours[i2]) / (img.shape[0] * img.shape[1])
+						cnt1Size = cv2.contourArea(lettersContours[i1]) / (img.shape[0] * img.shape[1])
+						cnt2Size = cv2.contourArea(lettersContours[i2]) / (img.shape[0] * img.shape[1])
 						if abs(cnt1Size - avgSize) < abs(cnt1Size - avgSize):
 							badCnts.append(i1)
 						else:
@@ -162,8 +164,6 @@ class ImageProcessing:
 		return img[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
 
 	def cropToPos(img, pos):
-		print("average colour ",ImageProcessing.getAvgCol(img))
-
 		srcTri = np.array( [pos[0], pos[1], pos[2]] ).astype(np.float32) * np.array([img.shape[1], img.shape[0]]).astype(np.float32)
 		dstTri = np.array( [[0, 0], [1, 0], [1, 1]] ).astype(np.float32) * np.array([img.shape[1], img.shape[0]]).astype(np.float32)
 
@@ -219,3 +219,4 @@ if __name__ == "__main__":
 		
 		cv2.imshow("Img", img)
 		cv2.waitKey(0)
+		cv2.destroyAllWindows()
