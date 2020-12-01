@@ -10,14 +10,13 @@ import random
 class LetterReader:
     def __init__(self, modelPath):
         self.model = keras.models.load_model(modelPath)
-
+        self.probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
     def readLetters(self, imgs):
         # classify a list of images
         for i, img in enumerate(imgs):
             img = self.preProcess(img)
         #cv2.imwrite(f"{random.randint(0, 1000)}.png", imgs[0])
-        probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
-        predictions = probability_model.predict(imgs)
+        predictions = self.probability_model.predict(imgs)
         choices = np.argmax(predictions, 1)
         confs = []
         for i in range(len(choices)):
@@ -28,8 +27,7 @@ class LetterReader:
         # classify a single image
         
         img = self.preProcess(img)
-        probability_model = keras.Sequential([self.model, keras.layers.Softmax()])
-        predictions = probability_model.predict(np.expand_dims(img, 0))
+        predictions = self.probability_model.predict(np.expand_dims(img, 0))
         choice = np.argmax(predictions[0])
         return choice, predictions[0][choice]
 
@@ -42,13 +40,11 @@ class LetterReader:
         if size != (32, 32):
             img = cv2.resize(img, (32, 32))
 
-        if len(size) == 3:
-            img = self.get_grayscale(img)
+        img = self.get_grayscale(img)
 
         if extra:
             img = self.remove_noise(img, 3)
-            if len(size) > 3:
-                img = self.thresholding(img, 5, 4) # cant do this without first greyscaling
+            img = self.thresholding(img, 5, 4) # cant do this without first greyscaling
         return img
 
     # https://nanonets.com/blog/ocr-with-tesseract/
