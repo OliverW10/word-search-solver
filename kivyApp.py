@@ -98,7 +98,7 @@ class LoadPage(GridLayout):
 		self.cols = 1
 		self.file_thing = FileChooserIconView()
 		self.file_thing.bind(on_submit=self.choseFile)
-		self.file_thing.path =  "/home/olikat/word-search-solver/tests/fulls"
+		self.file_thing.path =  "./tests/fulls"
 		self.add_widget(self.file_thing)
 
 	def choseFile(self, x, *args):

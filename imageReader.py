@@ -9,8 +9,8 @@ import image_to_numpy
 
 class ImageProcessing:
 	# both as a multiple of the image size
-	minContourSize = 0.5
-	maxContourSize = 10
+	minContourSize = 0.02
+	maxContourSize = 0.1
 
 	maxBoxSize = 1
 	minBoxSize = 0
@@ -32,17 +32,23 @@ class ImageProcessing:
 		else:
 			return grid, letters, letterImg
 
-	def boxOverlap(box1, box2, amount):
+	def boxOverlap(box1, box2):
 		# finds the total area of overlap between two rects (x, y, w, h)
-		if box1[0] < box2[0] + box2[2] and box1[0] + box1[2] > box2[1] and box1[1] < box2[1] + box2[3] and box1[1] + box1[3] > box2[1]:
-			if amont:
-				width = min(box1[0]+box1[2], box2[0]+box2[2]) - max(box1[0], box2[0])
-				height = min(box1[1]+box1[3], box1[1]+box2[3]) - max(box1[1], box2[1])
-				return width * height
-			else:
-				1
+		if ImageProcessing.boxCollide(box1, box2):
+			# assumes boxes dont have negative dimentions
+			actualWidth = min(box1[0], box2[0]) + max(box1[0]+box1[2], box2[0]+box2[2])
+			actualHeight = min(box1[1], box2[1]) + max(box1[1]+box1[3], box2[1]+box2[3])
+			totalWidth = box1[2] + box2[2]
+			totalHeight = box1[3] + box2[3]
+			return (totalWidth-actualWidth) * (totalHeight-actualHeight)
 		else:
 			return 0
+
+	def boxCollide(rect1, rect2):
+		return not (rect2[0] > rect1[0]+rect1[2]
+        or rect2[0]+rect2[2] < rect1[0]
+        or rect2[1] > rect1[1]+rect1[3]
+        or rect2[1]+rect2[3] < rect1[1])
 
 	def preProcessImg(img):
 		size = img.shape # height first
@@ -60,8 +66,7 @@ class ImageProcessing:
 		contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 		for i, cnt in enumerate(contours):
 			x,y,w,h = cv2.boundingRect(cnt)
-			if ImageProcessing.maxContourSize > cv2.contourArea(cnt)/img.shape[0] > ImageProcessing.minContourSize:
-				# and w > 3 and h > 3 and w < h*2 and h < w*10
+			if ImageProcessing.maxContourSize > cv2.contourArea(cnt)/(img.shape[0]*img.shape[1]) > ImageProcessing.minContourSize:
 				# drawImg = cv2.putText(drawImg, str(round((cv2.contourArea(cnt)/img.shape[0]), 2)), (x, y), cv2.FONT_HERSHEY_SIMPLEX , 1, 0, 1, cv2.LINE_AA) 
 				# cv2.rectangle(drawImg,(x,y),(x+w,y+h), 20, 3)
 				lettersContours.append(cnt)
@@ -70,13 +75,14 @@ class ImageProcessing:
 		gridSize = round(len(lettersContours) ** 0.5)
 		print("\n\ngridSize: ", gridSize)
 
-		# go through every contour and get the section of img
-		# done so that they can be keras'ed as a batch
+		# go through every contour and get the section of img around it
+		# done first so that they can be keras'ed as a batch
 		letterImgs = np.empty([len(lettersContours), 32, 32])
 		letterPositions = np.empty([len(lettersContours), 4])
 		badCnts = []
 		avgSize = 0
 		for i, cnt in enumerate(lettersContours):
+			# find a square centered around the contour
 			x,y,w,h = cv2.boundingRect(cnt)
 			midX = x+w/2
 			midY = y+h/2
@@ -87,12 +93,18 @@ class ImageProcessing:
 			h = int(maxSize)
 			if debug:
 				cv2.rectangle(drawImg,(x,y),(x+w,y+h), 20, 3)
+
+			# crop the image to the square
 			crop = img[y:y+h, x:x+w]
-			if crop.shape[0] > 3 and crop.shape[1] > 3:
+			if crop.shape[0] > 5 and crop.shape[1] > 5: # filter out tiny contours that somehow slipped through
+				cntSize = cv2.contourArea(cnt) / (img.shape[0] * img.shape[1])
+				# keep track of the average
 				if i-len(badCnts) == 0:
 					avgSize = cv2.contourArea(cnt)
 				else:
 					avgSize = ( (avgSize * i-len(badCnts)-1) + cv2.contourArea(cnt) ) / i-len(badCnts)
+
+				# save the box position and the image
 				letterPositions[i] = [x, y, w, h]
 				letterImgs[i] = cv2.resize(crop, (32, 32))
 			else:
@@ -102,24 +114,31 @@ class ImageProcessing:
 		print("average cnt size: ", avgSize)
 
 		# find any overlaps between letterContours and remove the one whose size is furthest from the average
-
+		for i1, rect1 in enumerate(letterPositions):
+			for i2, rect2 in enumerate(letterPositions):
+				if i1 != i2:
+					if ImageProcessing.boxCollide(rect1, rect2):
+						cnt1Size = cv2.contourArea(letterContours[i1]) / (img.shape[0] * img.shape[1])
+						cnt2Size = cv2.contourArea(letterContours[i2]) / (img.shape[0] * img.shape[1])
+						if abs(cnt1Size - avgSize) < abs(cnt1Size - avgSize):
+							badCnts.append(i1)
+						else:
+							badCnts.append(i2)
 		
 		# get the letter for each contour and its confidence
 		letReader = LetterReader("testModel1")
 		letters, confs = letReader.readLetters(letterImgs)
 
-		# combine the letters, their positions and the confidence
+		# combine the letters, their positions and the confidence and removes all badCnts
 		lettersPlus = []
 		for i in range(len(letters)):
 			isBad = i in badCnts
-			lettersPlus.append( (string.ascii_letters[letters[i]], letterPositions[i], confs[i], isBad) )
-			if debug:
-				drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
-
-		# last pass of removing false-positives
-		# for n in badCnts:
-		# 	del lettersPlus[n]
-		lettersPlus = list(filter(lambda x:x[3] == False, lettersPlus))
+			if not isBad:
+				lettersPlus.append( (string.ascii_letters[letters[i]], letterPositions[i], confs[i]) )
+				if debug:
+					drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
+			# elif debug:
+				# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0.5, 2, cv2.LINE_AA) 
 
 		# position all letters in grid
 		grid = []
