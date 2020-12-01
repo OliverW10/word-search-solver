@@ -106,12 +106,27 @@ class LoadPage(GridLayout):
 		self.caller.line_up_screen.setImage(x.selection[0])
 		# print("chosen file: ", x.path, x.selection)
 
+
+class WordWidget(BoxLayout):
+	def __init__(self, text, caller, **kwargs):
+		self.caller = caller
+		super().__init__(**kwargs)
+		self.cols = 2
+		self.textLabel = Label(text=text)
+		self.add_widget(self.textLabel)
+
+		self.removeButton = Button(text="x")
+		self.removeButton.bind(on_press=self.remove)
+		self.add_widget(self.removeButton)
+
+	def remove(self):
+		self.caller.removeWord(self.text)
+
 ### 4 ###
 class WordsPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
-		self.cols = 1
 		self.textinput = TextInput(hint_text='Enter words', multiline=False, size_hint = (0.8, 0.1), pos_hint={"x":0.05, "y":0.85} , text_validate_unfocus = False)
 		self.textinput.bind(on_text_validate=self.addWord)
 		self.add_widget(self.textinput)
@@ -135,11 +150,18 @@ class WordsPage(FloatLayout):
 		self.cropPos = "not set yet"
 
 	def addWord(self, *args):
-		self.words.append(self.textinput.text)
-		self.textinput.text = ""
+		if self.testWord(self.textinput.text):
+			self.words.append(self.textinput.text)
+			self.textinput.text = ""
 
-		self.wordsWidgets.append(Label(text = self.words[-1])) #  pos_hint={"center_x": 0.05, "center_y":0.675-len(self.words)*0.04})
-		self.wordsLayout.add_widget(self.wordsWidgets[-1])
+			self.wordsWidgets.append(Label(text = self.words[-1])) #  pos_hint={"center_x": 0.05, "center_y":0.675-len(self.words)*0.04})
+			self.wordsLayout.add_widget(self.wordsWidgets[-1])
+
+	def removeWord(self, wordName):
+		wordIndex = self.words.index(wordName)
+		self.remove_widget(self.wordsWidgets[wordIndex])
+		del self.words[wordIndex]
+		del self.wordsWidgets[wordIndex]
 
 	def continueToSolve(self, *args):
 		self.caller.solve_screen.solve(self.img, self.words, self.cropPos)
@@ -151,6 +173,13 @@ class WordsPage(FloatLayout):
 	def setStuff(self, img, pos): # this is the path not the actual image
 		self.img = img
 		self.cropPos = pos
+
+	def testWord(self, word):
+		# tests if you can add a word
+		if word == "" or word in self.words:
+			return False
+		else:
+			return True
 
 ### 2.2 ###
 class CameraPage(FloatLayout):
@@ -204,6 +233,7 @@ class LineUpPage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 		self.imgFilename = "temp_img.png"
+		self.imgRect = [0, 0, 1, 1]
 
 		self.movingLayout = Scatter()
 		self.movingLayout.do_rotation = False
@@ -259,9 +289,12 @@ class LineUpPage(FloatLayout):
 		if source != False:
 			self.imgFilename = source
 		if self.checkSet:
+			# loads image into numpy array
 			self.imgNp = ImageProcessing.loadImg(self.imgFilename).astype(np.uint8)
 			self.imgNp = np.flip(self.imgNp)
+			# turn numpy array into buffer
 			self.imgBuf = self.imgNp.tostring()
+			# then into kivy texture
 			self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 			self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
 			return True
