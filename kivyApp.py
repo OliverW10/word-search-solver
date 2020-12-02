@@ -294,7 +294,7 @@ class LineUpPage(FloatLayout):
 		if self.checkSet:
 			# loads image into numpy array
 			self.imgNp = ImageProcessing.loadImg(self.imgFilename).astype(np.uint8)
-			self.imgNp = np.flip(self.imgNp)
+			self.imgNp = np.flip(self.imgNp, 0)
 			# turn numpy array into buffer
 			self.imgBuf = self.imgNp.tostring()
 			# then into kivy texture

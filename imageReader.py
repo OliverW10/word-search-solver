@@ -20,7 +20,7 @@ class ImageProcessing:
 
 	def processImage(img, pos, debug = False):
 		newImg = ImageProcessing.preProcessImg(img)
-		croppedImg = ImageProcessing.cropToPos(newImg, pos)
+		croppedImg = ImageProcessing.cropToRect(newImg, pos=pos)
 		smallImg = cv2.resize(croppedImg, None, fx = 0.1, fy = 0.1)
 		cv2.imshow("cropped image", smallImg)
 		cv2.waitKey()
@@ -73,9 +73,6 @@ class ImageProcessing:
 
 		if len(lettersContours) < 5:
 			print("\n\n\n NO LETTERS FOUND \n\n")
-		# use the among of found contuors to determin the size of the grid
-		gridSize = round(len(lettersContours) ** 0.5)
-		print("\ngridSize: ", gridSize)
 
 		# go through every contour and get the section of img around it
 		# done first so that they can be keras'ed as a batch
@@ -110,8 +107,7 @@ class ImageProcessing:
 				letterPositions[i] = [x, y, w, h]
 				letterImgs[i] = cv2.resize(crop, (32, 32))
 			else:
-				print("\nweird shaped contour ????")
-				print(x, y, w, h)
+				print("\nweird shaped contour  ", [x, y, w, h])
 				badCnts.append(i)
 		print("average cnt size: ", avgSize)
 
@@ -142,6 +138,10 @@ class ImageProcessing:
 			# elif debug:
 				# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0.5, 2, cv2.LINE_AA) 
 
+		# use the among of found contuors to determin the size of the grid
+		gridSize = round(len(lettersPlus) ** 0.5)
+		print("\ngridSize: ", gridSize)
+
 		# position all letters in grid
 		grid = []
 		YsortedLetters = sorted(lettersPlus, key = lambda x:x[1][1])
@@ -158,10 +158,19 @@ class ImageProcessing:
 		else:
 			return grid, lettersPlus, np.zeros((10, 10))
 
-	def cropToRect(img, rect):
-		# crop and transform to the four corners given
-		img[y:y+h, x:x+w]
-		return img[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
+	def cropToRect(img, **kwargs):
+		if "pos" in kwargs:
+			posNp = np.array(kwargs["pos"]) * np.array([img.shape[1], img.shape[0]])
+			rect = [ posNp[0][0], posNp[0][1], posNp[2][0]-posNp[0][0], posNp[2][1]-posNp[0][1] ]
+		elif "rect" in kwargs:
+			rect = np.array(kwargs["rect"]) * np.array([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
+		else:
+			raise Exception("cropToRect given no kwarg")
+		cropPos = int(rect[0]), int(rect[0]+rect[2]), int(rect[1]), int(rect[1]+rect[3])
+		print("given: ", kwargs)
+		print("cropPos: ", cropPos)
+		print("img size: ", img.shape)
+		return img[cropPos[0]:cropPos[1], cropPos[2]:cropPos[3]]
 
 	def cropToPos(img, pos):
 		srcTri = np.array( [pos[0], pos[1], pos[2]] ).astype(np.float32) * np.array([img.shape[1], img.shape[0]]).astype(np.float32)
