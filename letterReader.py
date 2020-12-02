@@ -40,7 +40,8 @@ class LetterReader:
         if size != (32, 32):
             img = cv2.resize(img, (32, 32))
 
-        img = self.get_grayscale(img)
+        if len(img.shape) == 3:
+            img = self.get_grayscale(img)
 
         if extra:
             img = self.remove_noise(img, 3)

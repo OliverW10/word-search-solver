@@ -17,6 +17,7 @@ from kivy.uix.camera import Camera
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.clock import Clock
 from kivy.graphics import *
 from kivy.core.window import Window
@@ -115,12 +116,14 @@ class WordWidget(BoxLayout):
 		self.textLabel = Label(text=text)
 		self.add_widget(self.textLabel)
 
-		self.removeButton = Button(text="x")
+		self.removeButton = Button(text="x", size_hint_max_x=50)
+		# self.removeButton.size_hint = (0.2, 0.2)
 		self.removeButton.bind(on_press=self.remove)
 		self.add_widget(self.removeButton)
+		# self.size_hint_max_y = 0.02
 
-	def remove(self):
-		self.caller.removeWord(self.text)
+	def remove(self, *args):
+		self.caller.removeWord(self.textLabel.text)
 
 ### 4 ###
 class WordsPage(FloatLayout):
@@ -137,7 +140,7 @@ class WordsPage(FloatLayout):
 
 		self.words = []
 		self.wordsWidgets = []
-		self.wordsLayout = GridLayout(size_hint = (0.9, 0.7), pos_hint = {"x":0.05, "y":0.05})
+		self.wordsLayout = GridLayout(size_hint = (0.9, 0.7), pos_hint = {"x":0.05, "y":0.1})
 		self.wordsLayout.cols = 2
 
 		self.add_widget(self.wordsLayout)
@@ -154,12 +157,12 @@ class WordsPage(FloatLayout):
 			self.words.append(self.textinput.text)
 			self.textinput.text = ""
 
-			self.wordsWidgets.append(Label(text = self.words[-1])) #  pos_hint={"center_x": 0.05, "center_y":0.675-len(self.words)*0.04})
+			self.wordsWidgets.append(WordWidget(text = self.words[-1], caller = self))
 			self.wordsLayout.add_widget(self.wordsWidgets[-1])
 
 	def removeWord(self, wordName):
 		wordIndex = self.words.index(wordName)
-		self.remove_widget(self.wordsWidgets[wordIndex])
+		self.wordsLayout.remove_widget(self.wordsWidgets[wordIndex])
 		del self.words[wordIndex]
 		del self.wordsWidgets[wordIndex]
 
