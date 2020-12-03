@@ -105,7 +105,7 @@ class ImageProcessing:
 					avgSize = ( (avgSize * i-len(badCnts)) + cntSize ) / (i-len(badCnts)+1)
 
 				# save the box position and the image
-				letterPositions[i] = [x, y, w, h]
+				letterPositions[i] = [x/img.shape[1], y/img.shape[0], w/img.shape[1], h/img.shape[0]]
 				letterImgs[i] = cv2.resize(crop, (32, 32))
 			else:
 				print("\nweird shaped contour  ", [x, y, w, h])
@@ -172,10 +172,6 @@ class ImageProcessing:
 			rect = np.array(kwargs["rect"]) * np.array([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
 		else:
 			raise Exception("cropToRect given no kwarg")
-		# cropPos = [int(rect[0] * img.shape[0]),
-		# int(rect[0]+rect[2] * img.shape[1]),
-		# int(rect[1] * img.shape[0]),
-		# int(rect[1]+rect[3] * img.shape[1]) ]
 		print("given: ", kwargs)
 		print("cropPos: ", cropPos)
 		print("img size: ", img.shape)
@@ -218,8 +214,23 @@ class ImageProcessing:
 		kernel = np.ones((size, size),np.uint8)
 		return cv2.erode(image, kernel, iterations = 1)
 
-	def annotate(img, wordsPos, warpPos):
-		pass
+	def annotate(img, lettersPlus, cropPos, words):
+		cropRect = ( cropPos[0][0], cropPos[0][1], cropPos[2][0]-cropPos[0][0], cropPos[2][1] - cropPos[0][1] )
+		for i, word in enumerate(words):
+			pass
+		for l in lettersPlus:
+			x = int(lerp(cropPos[0][0], cropPos[2][0], l[1][0]) * img.shape[1])
+			y = int(lerp(cropPos[0][1], cropPos[2][1], l[1][1]) * img.shape[0])
+			# print(x, y)
+			img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
+			# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
+		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0]))
+		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0]))
+		cv2.rectangle(img, p1, p2, (0, 255, 0), 3)
+		return img
+
+def lerp(a, b, n):
+	return (n * a) + ((1-n) * b)
 
 if __name__ == "__main__":
 	fileNames = os.listdir("tests")

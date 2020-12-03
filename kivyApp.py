@@ -28,6 +28,7 @@ from kivy.graphics.texture import Texture
 import time
 import numpy as np
 import image_to_numpy
+import cv2
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -78,18 +79,32 @@ class SolvePage(GridLayout):
 		self.imgWidget = Image(source="temp_img.png")
 		self.add_widget(self.imgWidget)
 		self.imgPath = "not set"
+		self.setImageSrc("temp_img.png")
 
-	def setImage(self, img):
-		self.imgWidget.source = "temp_img.png"
+	def setImageSrc(self, img):
+		self.imgWidget.source = img
 		self.imgWidget.reload()
 
-	def solve(self, imgPath, words, pos):
+	def setImageBuf(self, img):
+		# takes a numpy image
+		# turn numpy array into buffer
+		self.imgBuf = self.img.tostring()
+		# then into kivy texture
+		self.imgTex = Texture.create(size=(self.img.shape[1], self.img.shape[0]), colorfmt="rgb")
+		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
+		self.imgWidget.texture = self.imgTex
+		self.imgWidget.reload()
+
+	def solve(self, imgPath, lookWords, pos):
 		self.imgPath = imgPath
 		self.img = ImageProcessing.loadImg(self.imgPath)
 		grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
 		print(grid)
-		words = Solvers.wordSearch(grid, words)
-		self.setImage(ImageProcessing.annotate(self.img, words, pos))
+		foundWords = Solvers.wordSearch(grid, lookWords)
+		outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
+		cv2.imwrite("./result.png", outImg)
+		# self.setImageBuf(outImg)
+		self.setImageSrc("./result.png")
 
 ### 2.1 ###
 class LoadPage(GridLayout):
@@ -249,7 +264,7 @@ class LineUpPage(FloatLayout):
 		self.squareMargin = 0.1
 		# self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
 		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
-		self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
+		# self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
 		self.createImgTexture()
 		self.makeSquare(self.squareMargin)
 
