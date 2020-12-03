@@ -34,7 +34,7 @@ from solvers import Solvers
 from imageReader import ImageProcessing
 kivy.require("1.11.1")
 
-### 1 ###
+### step 1 ###
 class StartPage(GridLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -67,46 +67,7 @@ class StartPage(GridLayout):
 		print("go to camera page")
 		self.caller.screen_manager.current = "Camera"
 
-### 5 ###
-class SolvePage(GridLayout):
-	def __init__(self, caller, **kwargs):
-		self.caller = caller
-		super().__init__(**kwargs)
-		self.cols = 1
-		self.add_widget(Label(text="LETS GOOOO!!!!"))
-
-
-		self.imgWidget = Image(source="temp_img.png")
-		self.add_widget(self.imgWidget)
-		self.imgPath = "not set"
-		self.setImageSrc("temp_img.png")
-
-	def setImageSrc(self, img):
-		self.imgWidget.source = img
-		self.imgWidget.reload()
-
-	def setImageBuf(self, img):
-		# takes a numpy image
-		# turn numpy array into buffer
-		self.imgBuf = self.img.tostring()
-		# then into kivy texture
-		self.imgTex = Texture.create(size=(self.img.shape[1], self.img.shape[0]), colorfmt="rgb")
-		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
-		self.imgWidget.texture = self.imgTex
-		self.imgWidget.reload()
-
-	def solve(self, imgPath, lookWords, pos):
-		self.imgPath = imgPath
-		self.img = ImageProcessing.loadImg(self.imgPath)
-		grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
-		print(grid)
-		foundWords = Solvers.wordSearch(grid, lookWords)
-		outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
-		cv2.imwrite("./result.png", outImg)
-		# self.setImageBuf(outImg)
-		self.setImageSrc("./result.png")
-
-### 2.1 ###
+### step 2, load###
 class LoadPage(GridLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -140,66 +101,7 @@ class WordWidget(BoxLayout):
 	def remove(self, *args):
 		self.caller.removeWord(self.textLabel.text)
 
-### 4 ###
-class WordsPage(FloatLayout):
-	def __init__(self, caller, **kwargs):
-		self.caller = caller
-		super().__init__(**kwargs)
-		self.textinput = TextInput(hint_text='Enter words', multiline=False, size_hint = (0.8, 0.1), pos_hint={"x":0.05, "y":0.85} , text_validate_unfocus = False)
-		self.textinput.bind(on_text_validate=self.addWord)
-		self.add_widget(self.textinput)
-
-		self.addButton = Button(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
-		self.addButton.bind(on_press = self.addWord)
-		self.add_widget(self.addButton)
-
-		self.words = []
-		self.wordsWidgets = []
-		self.wordsLayout = GridLayout(size_hint = (0.9, 0.7), pos_hint = {"x":0.05, "y":0.1})
-		self.wordsLayout.cols = 2
-
-		self.add_widget(self.wordsLayout)
-
-		self.continueButton = Button(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
-		self.add_widget(self.continueButton)
-		self.continueButton.bind(on_press = self.continueToSolve)
-
-		self.img = "not set yet"
-		self.cropPos = "not set yet"
-
-	def addWord(self, *args):
-		if self.testWord(self.textinput.text):
-			self.words.append(self.textinput.text)
-			self.textinput.text = ""
-
-			self.wordsWidgets.append(WordWidget(text = self.words[-1], caller = self))
-			self.wordsLayout.add_widget(self.wordsWidgets[-1])
-
-	def removeWord(self, wordName):
-		wordIndex = self.words.index(wordName)
-		self.wordsLayout.remove_widget(self.wordsWidgets[wordIndex])
-		del self.words[wordIndex]
-		del self.wordsWidgets[wordIndex]
-
-	def continueToSolve(self, *args):
-		self.caller.solve_screen.solve(self.img, self.words, self.cropPos)
-		self.caller.screen_manager.current = "Solve"
-
-	def getSet(self):
-		return self.img == "not set yet" and self.cropPos == "not set yet"
-
-	def setStuff(self, img, pos): # this is the path not the actual image
-		self.img = img
-		self.cropPos = pos
-
-	def testWord(self, word):
-		# tests if you can add a word
-		if word == "" or word in self.words:
-			return False
-		else:
-			return True
-
-### 2.2 ###
+### step 2, camera ###
 class CameraPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
@@ -229,21 +131,6 @@ class CameraPage(FloatLayout):
 
 	def cameraOff(self):
 		self.camera.play = False
-
-Builder.load_string('''
-<RotatedImage>:
-    canvas.before:
-        PushMatrix
-        Rotate:
-            angle: root.angle
-            axis: 0, 0, 1
-            origin: root.center
-    canvas.after:
-        PopMatrix
-''')
-
-class RotatedImage(Image):
-    angle = NumericProperty()
 
 ### 3 ###
 class LineUpPage(FloatLayout):
@@ -351,7 +238,118 @@ class LineUpPage(FloatLayout):
 		self.remove_widget(self.continueButton)
 		self.add_widget(self.continueButton)
 
+### 4 ###
+class WordsPage(FloatLayout):
+	def __init__(self, caller, **kwargs):
+		self.caller = caller
+		super().__init__(**kwargs)
+		self.textinput = TextInput(hint_text='Enter words', multiline=False, size_hint = (0.8, 0.1), pos_hint={"x":0.05, "y":0.85} , text_validate_unfocus = False)
+		self.textinput.bind(on_text_validate=self.addWord)
+		self.add_widget(self.textinput)
 
+		self.addButton = Button(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.addButton.bind(on_press = self.addWord)
+		self.add_widget(self.addButton)
+
+		self.words = []
+		self.wordsWidgets = []
+		self.wordsLayout = GridLayout(size_hint = (0.9, 0.7), pos_hint = {"x":0.05, "y":0.1})
+		self.wordsLayout.cols = 2
+
+		self.add_widget(self.wordsLayout)
+
+		self.continueButton = Button(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
+		self.add_widget(self.continueButton)
+		self.continueButton.bind(on_press = self.continueToSolve)
+
+		self.img = "not set yet"
+		self.cropPos = "not set yet"
+
+	def addWord(self, *args):
+		if self.testWord(self.textinput.text):
+			self.words.append(self.textinput.text)
+			self.textinput.text = ""
+
+			self.wordsWidgets.append(WordWidget(text = self.words[-1], caller = self))
+			self.wordsLayout.add_widget(self.wordsWidgets[-1])
+
+	def removeWord(self, wordName):
+		wordIndex = self.words.index(wordName)
+		self.wordsLayout.remove_widget(self.wordsWidgets[wordIndex])
+		del self.words[wordIndex]
+		del self.wordsWidgets[wordIndex]
+
+	def continueToSolve(self, *args):
+		self.caller.solve_screen.solve(self.img, self.words, self.cropPos)
+		self.caller.screen_manager.current = "Solve"
+
+	def getSet(self):
+		return self.img == "not set yet" and self.cropPos == "not set yet"
+
+	def setStuff(self, img, pos): # this is the path not the actual image
+		self.img = img
+		self.cropPos = pos
+
+	def testWord(self, word):
+		# tests if you can add a word
+		if word == "" or word in self.words:
+			return False
+		else:
+			return True
+
+
+### 5 ###
+class SolvePage(GridLayout):
+	def __init__(self, caller, **kwargs):
+		self.caller = caller
+		super().__init__(**kwargs)
+		self.cols = 1
+		self.add_widget(Label(text="LETS GOOOO!!!!"))
+
+
+		self.imgWidget = Image(source="temp_img.png")
+		self.add_widget(self.imgWidget)
+		self.imgPath = "not set"
+		self.setImageSrc("temp_img.png")
+
+	def setImageSrc(self, img):
+		self.imgWidget.source = img
+		self.imgWidget.reload()
+
+	def setImageBuf(self, img):
+		# takes a numpy image
+		# turn numpy array into buffer
+		self.imgBuf = self.img.tostring()
+		# then into kivy texture
+		self.imgTex = Texture.create(size=(self.img.shape[1], self.img.shape[0]), colorfmt="rgb")
+		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
+		self.imgWidget.texture = self.imgTex
+		self.imgWidget.reload()
+
+	def solve(self, imgPath, lookWords, pos):
+		self.imgPath = imgPath
+		self.img = ImageProcessing.loadImg(self.imgPath)
+		grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
+		print(grid)
+		foundWords = Solvers.wordSearch(grid, lookWords)
+		outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
+		cv2.imwrite("./result.png", outImg)
+		# self.setImageBuf(outImg)
+		self.setImageSrc("./result.png")
+		
+Builder.load_string('''
+<RotatedImage>:
+    canvas.before:
+        Rotate:
+            angle: root.angle
+            axis: 0, 0, 1
+            origin: root.center
+    canvas.after:
+        PopMatrix
+''')
+
+class RotatedImage(Image):
+    angle = NumericProperty()
 
 class SolverApp(App):
 	def build(self):
