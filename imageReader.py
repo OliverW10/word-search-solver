@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import string
-import os
 import random
 from letterReader import LetterReader
 import image_to_numpy
@@ -233,6 +232,7 @@ def lerp(a, b, n):
 	return (n * a) + ((1-n) * b)
 
 if __name__ == "__main__":
+	import os
 	fileNames = os.listdir("tests")
 	imageNames = []
 	for i in fileNames: # could probrobly be done in one line

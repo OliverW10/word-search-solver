@@ -1,0 +1,12 @@
+# this hasnt been tested so i dont know if it works
+--upgrade pip wheel setuptools virtualenv
+numpy
+opencv-python
+image_to_numpy
+tensorflow
+docutils
+pygments
+pypiwin32
+kivy_deps.sdl2==0.1.*
+kivy.deps.glew==0.1.*
+--pre --extra-index-url https://kivy.org/downloads/simple kivy[base]
