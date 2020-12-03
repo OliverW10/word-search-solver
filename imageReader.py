@@ -21,6 +21,7 @@ class ImageProcessing:
 	def processImage(img, pos, debug = False):
 		newImg = ImageProcessing.preProcessImg(img)
 		croppedImg = ImageProcessing.cropToRect(newImg, pos=pos)
+		print("croppedImg shape: ", croppedImg.shape)
 		smallImg = cv2.resize(croppedImg, None, fx = 0.1, fy = 0.1)
 		cv2.imshow("cropped image", smallImg)
 		cv2.waitKey()
@@ -160,13 +161,21 @@ class ImageProcessing:
 
 	def cropToRect(img, **kwargs):
 		if "pos" in kwargs:
-			posNp = np.array(kwargs["pos"]) * np.array([img.shape[1], img.shape[0]])
-			rect = [ posNp[0][0], posNp[0][1], posNp[2][0]-posNp[0][0], posNp[2][1]-posNp[0][1] ]
+			posNp = np.array(kwargs["pos"])
+			print("posNp: ", posNp)
+			cropPos = [int(posNp[0][0] * img.shape[1]),
+			int(posNp[2][0] * img.shape[1]),
+			int(posNp[0][1] * img.shape[1]),
+			int(posNp[2][1] * img.shape[0]),
+			]
 		elif "rect" in kwargs:
 			rect = np.array(kwargs["rect"]) * np.array([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
 		else:
 			raise Exception("cropToRect given no kwarg")
-		cropPos = int(rect[0]), int(rect[0]+rect[2]), int(rect[1]), int(rect[1]+rect[3])
+		# cropPos = [int(rect[0] * img.shape[0]),
+		# int(rect[0]+rect[2] * img.shape[1]),
+		# int(rect[1] * img.shape[0]),
+		# int(rect[1]+rect[3] * img.shape[1]) ]
 		print("given: ", kwargs)
 		print("cropPos: ", cropPos)
 		print("img size: ", img.shape)

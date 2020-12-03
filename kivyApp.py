@@ -249,6 +249,7 @@ class LineUpPage(FloatLayout):
 		self.squareMargin = 0.1
 		# self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
 		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
+		self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
 		self.createImgTexture()
 		self.makeSquare(self.squareMargin)
 
@@ -282,10 +283,14 @@ class LineUpPage(FloatLayout):
 		size = min(Window.size[0], Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
 		midX, midY = Window.size[0]/2, Window.size[1]/2
 		# origin is bottom left
-		topLeft = np.array(self.movingLayout.to_parent(midX-size, midY-size)) / np.array([Window.size[0], Window.size[1]])
-		topRight = np.array(self.movingLayout.to_parent(midX+size, midY-size)) / np.array([Window.size[0], Window.size[1]])
-		bottomLeft = np.array(self.movingLayout.to_parent(midX-size, midY+size)) / np.array([Window.size[0], Window.size[1]])
-		bottomRight = np.array(self.movingLayout.to_parent(midX+size, midY+size)) / np.array([Window.size[0], Window.size[1]])
+		topLeft = np.array(self.movingLayout.to_parent(midX-size, midY+size)) / np.array([Window.size[0], Window.size[1]])
+		topRight = np.array(self.movingLayout.to_parent(midX+size, midY+size)) / np.array([Window.size[0], Window.size[1]])
+		bottomLeft = np.array(self.movingLayout.to_parent(midX-size, midY-size)) / np.array([Window.size[0], Window.size[1]])
+		bottomRight = np.array(self.movingLayout.to_parent(midX+size, midY-size)) / np.array([Window.size[0], Window.size[1]])
+		topLeft[1] =1-topLeft[1]
+		topRight[1] =1-topRight[1]
+		bottomLeft[1] =1-bottomLeft[1]
+		bottomRight[1] =1-bottomRight[1]
 		return topLeft, topRight, bottomRight, bottomLeft
 
 	def createImgTexture(self, source = False):
