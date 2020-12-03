@@ -22,9 +22,9 @@ class ImageProcessing:
 		croppedImg = ImageProcessing.cropToRect(newImg, pos=pos)
 		print("croppedImg shape: ", croppedImg.shape)
 		smallImg = cv2.resize(croppedImg, None, fx = 0.1, fy = 0.1)
-		cv2.imshow("cropped image", smallImg)
-		cv2.waitKey()
-		cv2.destroyAllWindows()
+		# cv2.imshow("cropped image", smallImg)
+		# cv2.waitKey()
+		# cv2.destroyAllWindows()
 		grid, letters, letterImg = ImageProcessing.findLetters(croppedImg, debug)
 
 		if debug:

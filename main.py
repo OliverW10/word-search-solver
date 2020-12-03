@@ -2,6 +2,12 @@
 # logging.getLogger("kivy").setLevel(logging.ERROR)
 # logging.getLogger("keras").setLevel(logging.ERROR)
 import os
+import sys
+sys.stderr = open('output.txt', 'w')
+sys.stdout = sys.stderr
+
+from kivy.logger import LoggerHistory
+print('\n'.join([str(l) for l in LoggerHistory.history]))
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import kivy
