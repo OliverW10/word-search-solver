@@ -3,11 +3,11 @@
 # logging.getLogger("keras").setLevel(logging.ERROR)
 import os
 import sys
-sys.stderr = open('output.txt', 'w')
-sys.stdout = sys.stderr
-
-from kivy.logger import LoggerHistory
-print('\n'.join([str(l) for l in LoggerHistory.history]))
+# sys.stderr = open('output.txt', 'w')
+# sys.stdout = sys.stderr
+# 
+# from kivy.logger import LoggerHistory
+# print('\n'.join([str(l) for l in LoggerHistory.history]))
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import kivy
@@ -178,7 +178,7 @@ class LineUpPage(FloatLayout):
 
 	def getPosKivy(self):
 		# gets the coordinates of each corner of the line-up square with the origin being bottom left in pixels
-		size = min(Window.size[0], Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
+		size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
 		midX, midY = Window.size[0]/2, Window.size[1]/2
 		topLeft = self.movingLayout.to_parent(midX-size, midY+size)
 		topRight = self.movingLayout.to_parent(midX+size, midY+size)
@@ -188,7 +188,7 @@ class LineUpPage(FloatLayout):
 
 	def getPosCv(self):
 		# gets the coordinates of each corner of the line-up square with the origin being top left as a percentage of the window size
-		size = min(Window.size[0], Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
+		size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
 		midX, midY = Window.size[0]/2, Window.size[1]/2
 		# origin is bottom left
 		topLeft = np.array(self.movingLayout.to_parent(midX-size, midY+size)) / np.array([Window.size[0], Window.size[1]])
@@ -218,12 +218,25 @@ class LineUpPage(FloatLayout):
 			return False
 
 	def makeSquare(self, margin):
-		print("square resizers callback called")
-		print("window size: ", Window.size)
+		# print("square resizers callback called")
+		# print("window size: ", Window.size)
 
 		self.canvas.clear()
 		with self.canvas:
-			Rectangle(pos=(0, 0), size=(Window.size[0], Window.size[1]), texture = self.imgTex)
+			# find if the width/height ratio of the image is more or less than the window
+			imgRatio = self.imgNp.shape[1]/self.imgNp.shape[0]
+			if (Window.size[0]/Window.size[1]) > (self.imgNp.shape[1]/self.imgNp.shape[0]):
+				height = Window.size[1]
+				width = height * imgRatio # set the height to fill the window and width to scale according to the image ratio
+				self.imgSize = [width/Window.size[0], height/Window.size[1]]
+			else:
+				width = Window.size[0]
+				height = width * (self.imgNp.shape[0]/self.imgNp.shape[1]) # set the width to fill the window and height to scale according to the ratio (backwards)
+				self.imgSize = [width/Window.size[0], height/Window.size[1]]
+			print(self.imgSize)
+			x = (Window.size[0]/2)-(self.imgSize[0]*Window.size[0])/2 # sets position so that the image is centerd
+			y = (Window.size[1]/2)-(self.imgSize[1]*Window.size[1])/2
+			Rectangle(pos=(x, y), size=(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1]), texture = self.imgTex)
 			Color(1.0, 0, 0)
 			pos = self.getPosKivy()
 			for p in pos:
@@ -236,7 +249,7 @@ class LineUpPage(FloatLayout):
 		with self.movingLayout.canvas:
 			print(Window.size[0], Window.size[1])
 			Color(0, 1.0, 0)
-			size = min(Window.size[0], Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
+			size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
 			midX, midY = Window.size[0]/2, Window.size[1]/2
 			Line(rectangle=(midX-size, midY-size, size*2, size*2))
 		self.add_widget(self.movingLayout)
