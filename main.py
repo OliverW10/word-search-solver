@@ -138,6 +138,13 @@ class CameraPage(FloatLayout):
 	def cameraOff(self):
 		self.camera.play = False
 
+
+def scaleNumber(n, x1, x2, y1, y2):
+	range1 = x2-x1
+	range2 = y2-y1
+	ratio = (n-x1)/range1
+	return ratio * range2+y1
+
 ### 3 ###
 class LineUpPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
@@ -186,7 +193,7 @@ class LineUpPage(FloatLayout):
 		bottomRight = self.movingLayout.to_parent(midX+size, midY-size)
 		return topLeft, topRight, bottomRight, bottomLeft
 
-	def getPosCv(self):
+	def getPosCv2(self):
 		# gets the coordinates of each corner of the line-up square with the origin being top left as a percentage of the window size
 		size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
 		midX, midY = Window.size[0]/2, Window.size[1]/2
@@ -200,6 +207,24 @@ class LineUpPage(FloatLayout):
 		bottomLeft[1] =1-bottomLeft[1]
 		bottomRight[1] =1-bottomRight[1]
 		return topLeft, topRight, bottomRight, bottomLeft
+
+	def getPosCv(self):
+		size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-self.squareMargin/2)
+		midX, midY = Window.size[0]/2, Window.size[1]/2
+		topLeft = self.squareToImg(midX-size, midY+size)
+		topRight = self.squareToImg(midX+size, midY+size)
+		bottomLeft = self.squareToImg(midX-size, midY-size)
+		bottomRight = self.squareToImg(midX+size, midY-size)
+		return topLeft, topRight, bottomRight, bottomLeft
+
+	def squareToImg(self, x, y):
+		# converts a pos from the movable square to image based position
+
+		kivyPosPx = self.movingLayout.to_parent(x, y) # the position in the window in pixels
+		kivyPosPe = np.array(kivyPosPx) / np.array(Window.size) # the position in the window as a percent
+		imPos = [ (kivyPosPe[0]-self.imgPos[0])/self.imgSize[0],
+		1 - (kivyPosPe[1]-self.imgPos[1])/self.imgSize[1] ] #scaleNumber(kivyPosPe[1], 0, 1, self.imgPos[1], self.imgPos[1]+self.imgSize[1])
+		return imPos
 
 	def createImgTexture(self, source = False):
 		if source != False:
@@ -233,9 +258,9 @@ class LineUpPage(FloatLayout):
 				width = Window.size[0]
 				height = width * (self.imgNp.shape[0]/self.imgNp.shape[1]) # set the width to fill the window and height to scale according to the ratio (backwards)
 				self.imgSize = [width/Window.size[0], height/Window.size[1]]
-			print(self.imgSize)
-			x = (Window.size[0]/2)-(self.imgSize[0]*Window.size[0])/2 # sets position so that the image is centerd
-			y = (Window.size[1]/2)-(self.imgSize[1]*Window.size[1])/2
+			x = (Window.size[0]/2)-(self.imgSize[0]*Window.size[0])/2 # sets position so that the image is centerd as:
+			y = (Window.size[1]/2)-(self.imgSize[1]*Window.size[1])/2 # the middle of the window minus half the image size
+			self.imgPos = [x/Window.size[0], y/Window.size[1]]
 			Rectangle(pos=(x, y), size=(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1]), texture = self.imgTex)
 			Color(1.0, 0, 0)
 			pos = self.getPosKivy()
@@ -247,7 +272,6 @@ class LineUpPage(FloatLayout):
 		self.remove_widget(self.movingLayout)
 		self.movingLayout.canvas.clear()
 		with self.movingLayout.canvas:
-			print(Window.size[0], Window.size[1])
 			Color(0, 1.0, 0)
 			size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
 			midX, midY = Window.size[0]/2, Window.size[1]/2
@@ -372,7 +396,6 @@ class RotatedImage(Image):
 
 class SolverApp(App):
 	def build(self):
-		print(self)
 		self.screen_manager = ScreenManager()
 
 		self.start_page = StartPage(self)

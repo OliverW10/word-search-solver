@@ -22,9 +22,9 @@ class ImageProcessing:
 		croppedImg = ImageProcessing.cropToRect(newImg, pos=pos)
 		print("croppedImg shape: ", croppedImg.shape)
 		smallImg = cv2.resize(croppedImg, None, fx = 0.1, fy = 0.1)
-		# cv2.imshow("cropped image", smallImg)
-		# cv2.waitKey()
-		# cv2.destroyAllWindows()
+		cv2.imshow("cropped image", smallImg)
+		cv2.waitKey()
+		cv2.destroyAllWindows()
 		grid, letters, letterImg = ImageProcessing.findLetters(croppedImg, debug)
 
 		if debug:
@@ -171,10 +171,15 @@ class ImageProcessing:
 			rect = np.array(kwargs["rect"]) * np.array([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
 		else:
 			raise Exception("cropToRect given no kwarg")
+		cropPos = ImageProcessing.fixCropPos(cropPos)
 		print("given: ", kwargs)
 		print("cropPos: ", cropPos)
 		print("img size: ", img.shape)
 		return img[cropPos[0]:cropPos[1], cropPos[2]:cropPos[3]]
+
+	def fixCropPos(x):
+		# makes the first of each axis of the cropPos to be the smallest
+		return [ min(x[0], x[1]), max(x[0], x[1]) ,  min(x[2], x[3]), max(x[2], x[3])]
 
 	def cropToPos(img, pos):
 		srcTri = np.array( [pos[0], pos[1], pos[2]] ).astype(np.float32) * np.array([img.shape[1], img.shape[0]]).astype(np.float32)
