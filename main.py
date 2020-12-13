@@ -1,8 +1,8 @@
 # import logging
 # logging.getLogger("kivy").setLevel(logging.ERROR)
 # logging.getLogger("keras").setLevel(logging.ERROR)
-import os
-import sys
+# import os
+# import sys
 # sys.stderr = open('output.txt', 'w')
 # sys.stdout = sys.stderr
 # 
@@ -31,14 +31,20 @@ from kivy.graphics.transformation import Matrix
 from kivy.lang.builder import Builder
 from kivy.properties import *
 from kivy.graphics.texture import Texture
+from kivy.utils import platform
 import time
 import numpy as np
 import image_to_numpy
-import cv2
+# import cv2
 
-from solvers import Solvers
+# from solvers import Solvers
 from imageReader import ImageProcessing
-kivy.require("1.11.1")
+
+# kivy.require("2.0")
+if platform == "android":
+	from android.permissions import request_permissions, Permission
+	from android.storage import primary_external_storage_path
+	request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE])
 
 ### step 1 ###
 class StartPage(GridLayout):
@@ -81,7 +87,11 @@ class LoadPage(GridLayout):
 		self.cols = 1
 		self.file_thing = FileChooserIconView()
 		self.file_thing.bind(on_submit=self.choseFile)
-		self.file_thing.path =  "./tests/fulls"
+		if platform == "android":
+			# self.file_thing.path = primary_external_storage_path()
+			self.file_thing.path = "data/data/org.test.myapp"
+		else:
+			self.file_thing.path =  "./tests/fulls"
 		self.add_widget(self.file_thing)
 
 	def choseFile(self, x, *args):
@@ -231,7 +241,7 @@ class LineUpPage(FloatLayout):
 			self.imgFilename = source
 		if self.checkSet:
 			# loads image into numpy array
-			self.imgNp = ImageProcessing.loadImg(self.imgFilename).astype(np.uint8)
+			self.imgNp = image_to_numpy.load_image_file(self.imgFilename).astype(np.uint8) # ImageProcessing.loadImg(self.imgFilename)
 			self.imgNp = np.flip(self.imgNp, 0)
 			# turn numpy array into buffer
 			self.imgBuf = self.imgNp.tostring()
@@ -371,12 +381,12 @@ class SolvePage(GridLayout):
 
 	def solve(self, imgPath, lookWords, pos):
 		self.imgPath = imgPath
-		self.img = ImageProcessing.loadImg(self.imgPath)
-		grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
-		print(grid)
-		foundWords = Solvers.wordSearch(grid, lookWords)
-		outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
-		cv2.imwrite("./result.png", outImg)
+		# self.img = ImageProcessing.loadImg(self.imgPath)
+		# grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
+		# print(grid)
+		# foundWords = Solvers.wordSearch(grid, lookWords)
+		# outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
+		# cv2.imwrite("./result.png", outImg)
 		# self.setImageBuf(outImg)
 		self.setImageSrc("./result.png")
 		
@@ -433,6 +443,19 @@ class SolverApp(App):
 
 		return self.screen_manager
 
+class TestApp(App):
+	def build(self):
+		self.layout = BoxLayout()
+		self.layout.cols = 2
+		self.thing = Label(text="test label")
+		self.testButton = Button(text="test button")
+		self.layout.add_widget(self.thing)
+		self.layout.add_widget(self.testButton)
+		return self.layout
+
+__version__ = "0.0.1"
 if __name__ == "__main__":
 	solver_app = SolverApp()
 	SolverApp().run()
+	# test_app = TestApp()
+	# test_app.run()

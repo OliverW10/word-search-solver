@@ -25,7 +25,7 @@ source.include_exts = py,png,jpg,kv,atlas
 #source.exclude_dirs = bin, trainSetImgs, trainSetNpOne
 
 # (list) List of exclusions using pattern matching
-#source.exclude_patterns = license,images/*/*.jpg
+#source.exclude_patterns = license
 
 # (str) Application versioning (method 1)
 version = 0.1
@@ -36,7 +36,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy
+requirements = python3,kivy,numpy,image_to_numpy,pillow,opencv
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -46,10 +46,10 @@ requirements = python3,kivy
 #garden_requirements =
 
 # (str) Presplash of the application
-#presplash.filename = %(source.dir)s/data/presplash.png
+presplash.filename = %(source.dir)s/logo.png
 
 # (str) Icon of the application
-#icon.filename = %(source.dir)s/data/icon.png
+icon.filename = %(source.dir)s/logo.png
 
 # (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
 orientation = portrait
@@ -85,7 +85,7 @@ fullscreen = 0
 #android.presplash_color = #FFFFFF
 
 # (list) Permissions
-#android.permissions = INTERNET
+#android.permissions = INTERNET,CAMERA
 
 # (int) Target Android API, should be as high as possible.
 #android.api = 27

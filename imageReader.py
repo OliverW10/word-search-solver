@@ -2,9 +2,10 @@ import cv2
 import numpy as np
 import string
 import random
-from letterReader import LetterReader
+# from letterReader import LetterReader
 import image_to_numpy
 
+print("\n"*5+f"imported opencv version {cv2.__version__}"+"\n"*5)
 
 class ImageProcessing:
 	# both as a multiple of the image size
