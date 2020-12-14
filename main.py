@@ -285,7 +285,7 @@ class LineUpPage(FloatLayout):
 			Color(0, 1.0, 0)
 			size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-margin/2) # half of the side length of the line-up square
 			midX, midY = Window.size[0]/2, Window.size[1]/2
-			Line(rectangle=(midX-size, midY-size, size*2, size*2))
+			Line(rectangle=(midX-size, midY-size, size*2, size*2), width=3)
 		self.add_widget(self.movingLayout)
 
 		self.remove_widget(self.continueButton)

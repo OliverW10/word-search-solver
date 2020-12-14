@@ -137,8 +137,6 @@ dmypy.json
 cython_debug/
 trainSetImg/
 
-trainSetNpOne/
-trainSetImg/
 .buildozer/
 result.png
 .idea
