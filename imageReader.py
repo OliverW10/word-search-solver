@@ -2,10 +2,8 @@ import cv2
 import numpy as np
 import string
 import random
-# from letterReader import LetterReader
+from letterReader import LetterReader
 import image_to_numpy
-
-print("\n"*5+f"imported opencv version {cv2.__version__}"+"\n"*5)
 
 class ImageProcessing:
 	# both as a multiple of the image size
@@ -125,17 +123,16 @@ class ImageProcessing:
 							badCnts.append(i2)
 		
 		# get the letter for each contour and its confidence
-		letReader = LetterReader("testModel1")
-		letters, confs = letReader.readLetters(letterImgs)
+		letReader = LetterReader()
+		letters, neighbours = letReader.readLetters(letterImgs)
 
 		# combine the letters, their positions and the confidence and removes all badCnts
 		lettersPlus = []
 		for i in range(len(letters)):
-			isBad = i in badCnts
-			if not isBad:
-				lettersPlus.append( (string.ascii_letters[letters[i]], letterPositions[i], confs[i]) )
-				if debug:
-					drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
+			if not i in badCnts:
+				lettersPlus.append( (string.ascii_letters[int(letters[i])], letterPositions[i]) )
+				# if debug:
+					# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
 			# elif debug:
 				# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0.5, 2, cv2.LINE_AA) 
 
@@ -149,7 +146,7 @@ class ImageProcessing:
 		for row in range(gridSize):
 			rowLettersPlus = sorted( YsortedLetters[row*gridSize : (row+1)*gridSize] , key = lambda x:x[1][0] )
 			rowLetters = [letter[0] for letter in rowLettersPlus]
-			# print(rowLetters)
+			print(rowLetters)
 			grid.append(rowLetters)
 			# del YsortedLetters[row*gridSize : (row+1)*gridSize]
 		# print(grid)

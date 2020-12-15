@@ -12,27 +12,39 @@ def loadDatasetNpAll(*args): # slightly higher file size but much quicker loadin
     print("load time: " + str(time.time() - readimg_start))
     return images, labels
     
-if __name__ == "__main__":
-    start_time = time.time()
+def makeKnn(dataPer=0.01):
+    # dataPer is the percentage of the data to use
     allImages, allLabels = loadDatasetNpAll()
-    trainImages, trainLabels = allImages[0:-1000], allLabels[0:-1000]
-    testImages, testLabels = allImages[-1000:-1], allLabels[-1000:-1]
-    print("all ", len(allImages), len(allLabels))
-    print("train ", len(trainImages), len(trainLabels))
-    print("test ", len(testImages), len(testLabels))
-    # print("\n", testLabels)
-    # cv2.imshow("test", images3[5])
-    # print(string.ascii_letters[labels3[5]])
-
-    # images = images / 255
+    testNum = int((dataPer)*len(allImages))+1
+    trainImages, trainLabels = allImages[0:-testNum], allLabels[0:-testNum]
+    testImages, testLabels = allImages[-testNum:-1], allLabels[-testNum:-1]
 
     knn = cv2.ml.KNearest_create()
     knn.train(trainImages, cv2.ml.ROW_SAMPLE, trainLabels)
+
+    return knn, testImages, testLabels
+
+if __name__ == "__main__":
+    total_start_time = time.time()
+    start_time = time.time()
+    knn, testImages, testLabels = makeKnn(0.0001)
+    print("train time ", time.time()-start_time)
+
     acc = 0
+    start_time = time.time()
     ret,result,neighbours,dist = knn.findNearest(testImages,k=10)
+    print("result: ", result)
+    print("neighbours: ", neighbours)
+    print("dist: ", dist)
+    print("predict time ", time.time()-start_time)
+
+    start_time = time.time()
     correct = 0
     for i in range(len(result)):
-        print(testLabels[i], "  ", result[i][0])
+        # print(string.ascii_letters[int(testLabels[i])], "  ", string.ascii_letters[int(result[i][0])])
         if result[i] == testLabels[i]:
             correct += 1
+    print("test samples: ", len(testLabels))
+    print("eval time ", time.time()-start_time)
     print(f"\naccuracy {round(100*correct/len(result), 2)}%")
+    print("total time ", time.time()-total_start_time)

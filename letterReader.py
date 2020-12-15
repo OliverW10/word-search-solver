@@ -5,27 +5,25 @@ import random
 
 # run an already trained model on a image
 class LetterReader:
-    def __init__(self, modelPath):
-    def readLetters(self, imgs):
+    def __init__(self):
+        self.knn, _, _ = letterReaderTrainer.makeKnn(0)
+
+    def readLetters(self, imgs, k = 10):
         # classify a list of images
         for i, img in enumerate(imgs):
             img = self.preProcess(img)
+        imgs = np.reshape(imgs, (imgs.shape[0], 1024)).astype(np.float32)
+
         #cv2.imwrite(f"{random.randint(0, 1000)}.png", imgs[0])
-
-
-        choices = np.argmax(predictions, 1)
-        confs = []
-        for i in range(len(choices)):
-            confs.append(predictions[i][choices[i]])
-        return choices, confs
+        ret,result,neighbours,dist = self.knn.findNearest(imgs,k=k)
+        return result, neighbours
         
-    def readLetter(self, img):
+    def readLetter(self, img, k = 20):
         # classify a single image
         img = self.preProcess(img)
-
-
-        choice = np.argmax(predictions[0])
-        return choice, predictions[0][choice]
+        img = np.reshape(img, 1024)
+        ret,result,neighbours,dist = self.knn.findNearest(img,k=k)
+        return result[0], neighbours[0]
 
 
     def preProcess(self, img, extra = False):
