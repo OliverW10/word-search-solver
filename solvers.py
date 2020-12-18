@@ -1,6 +1,7 @@
 import string
 import random
 import copy
+import time
 
 # use kivy for app, https://kivy.org/#home
 # use pytesseract for ocr https://pypi.org/project/pytesseract/
@@ -27,9 +28,9 @@ class Solvers:
 			directions += [[-1, 0], [-1, -1], [-1, 1], [0, -1]]
 		foundWords = {}
 		for n, word in enumerate(words):
-			print("\n\n\n"+word)
+			# print("\n\n\n"+word)
 			firsts = Solvers.findLetters(grid, word[0]) # find where all the first letters are
-			print(firsts)
+			# print(firsts)
 			for i, pos in enumerate(firsts):
 				# print(f"\n\n next pos {pos} ")
 				for d, direction in enumerate(directions): # for each first letter try each direction
@@ -47,7 +48,7 @@ class Solvers:
 							# print("out of grid")
 
 					if stillGoing:
-						print(f"found word {word} {str([pos, ( pos[0] + direction[0]*len(word), pos[1] + direction[1]*len(word) ) ])}")
+						# print(f"found word {word} {str([pos, ( pos[0] + direction[0]*len(word), pos[1] + direction[1]*len(word) ) ])}")
 						foundWords[word] = (pos, [ pos[0] + direction[0]*len(word), pos[1] + direction[1]*len(word) ] )
 		return foundWords
 
@@ -111,11 +112,15 @@ if __name__ == "__main__":
 
 	testWords = ["ab"]
 
-	testGrid = generateWordSearch(10, testWords)
+	testGrid = generateWordSearch(100, testWords)
 	for _, i in enumerate(testGrid):
 		for _, j in enumerate(i):
 			print(j, end = " ")
 		print("")
 	print("\n"*2)
 
-	print(Solvers.wordSearch(testGrid, testWords, True, 2))
+	start_time = time.time()
+	for i in range(1000):
+		Solvers.wordSearch(testGrid, testWords)
+	print("time: ", (time.time()-start_time)/1000)
+	print(Solvers.wordSearch(testGrid, testWords))

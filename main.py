@@ -37,7 +37,7 @@ import numpy as np
 import image_to_numpy
 # import cv2
 
-# from solvers import Solvers
+from solvers import Solvers
 from imageReader import ImageProcessing
 
 # kivy.require("2.0")
@@ -170,6 +170,7 @@ class LineUpPage(FloatLayout):
 		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.add_widget(self.continueButton)
 		self.continueButton.bind(on_press = self.continued)
+		self.continueButton.on_touch_down = self.buttonTouchCheck
 
 		self.squareMargin = 0.1
 		# self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
@@ -177,6 +178,15 @@ class LineUpPage(FloatLayout):
 		# self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
 		self.createImgTexture()
 		self.makeSquare(self.squareMargin)
+
+	def buttonTouchCheck(self, touch, *args):
+		print("Widget Pos", self.continueButton.pos, self.continueButton.size)
+		print("Touch pos ", self.to_local(touch.pos[0], touch.pos[1]))
+		print("Touch Check ", self.continueButton.collide_point(touch.pos[0], touch.pos[1]))
+		if self.continueButton.collide_point(*touch.pos):
+			self.continued()
+		else:	
+			return self.on_touch_down(touch)
 
 	def setImage(self, img):
 		print("path given: ",img)
@@ -360,35 +370,32 @@ class SolvePage(GridLayout):
 		self.add_widget(Label(text="LETS GOOOO!!!!"))
 
 
-		self.imgWidget = Image(source="temp_img.png")
-		self.add_widget(self.imgWidget)
+		with self.canvas:
+			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]), source = "temp_img.png")
+		# self.imgWidget = Image(source="temp_img.png")
+		# self.add_widget(self.rect)
 		self.imgPath = "not set"
-		self.setImageSrc("temp_img.png")
-
-	def setImageSrc(self, img):
-		self.imgWidget.source = img
-		self.imgWidget.reload()
 
 	def setImageBuf(self, img):
+		self.imgNp = np.flip(self.img, 0)
 		# takes a numpy image
 		# turn numpy array into buffer
-		self.imgBuf = self.img.tostring()
+		self.imgBuf = self.imgNp.tostring()
 		# then into kivy texture
-		self.imgTex = Texture.create(size=(self.img.shape[1], self.img.shape[0]), colorfmt="rgb")
+		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
-		self.imgWidget.texture = self.imgTex
-		self.imgWidget.reload()
+		self.rect.texture = self.imgTex
+		# self.rect.reload()
 
 	def solve(self, imgPath, lookWords, pos):
 		self.imgPath = imgPath
-		# self.img = ImageProcessing.loadImg(self.imgPath)
-		# grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
-		# print(grid)
-		# foundWords = Solvers.wordSearch(grid, lookWords)
-		# outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
+		self.img = ImageProcessing.loadImg(self.imgPath)
+		grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
+		print(grid)
+		foundWords = Solvers.wordSearch(grid, lookWords)
+		outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
 		# cv2.imwrite("./result.png", outImg)
-		# self.setImageBuf(outImg)
-		self.setImageSrc("./result.png")
+		self.setImageBuf(outImg)
 		
 Builder.load_string('''
 <RotatedImage>:

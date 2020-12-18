@@ -5,6 +5,7 @@ import random
 import imutils
 from PIL import ImageFont, ImageDraw, Image 
 import os
+import time
 
 # generates images to be used to train model on
 # model will be used in word search solver app
@@ -55,7 +56,7 @@ def crop(img):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         x,y,w,h = cv2.boundingRect(letCnt)
-        maxSize = max(w, h) * 1.1
+        maxSize = max(w, h) * 1.0
         midX = x+w/2
         midY = y+h/2
         x = abs(int(midX-maxSize/2))
@@ -65,21 +66,22 @@ def crop(img):
         crop = img[y:y+h, x:x+w]
         return 255-cv2.resize(crop, (32, 32)).astype(np.uint8)
     else:
-        return 255-img.astype(np.uint8)
+        return 255-cv2.resize(img, (32, 32)).astype(np.uint8)
 
-if __name__ == "__main__":
+def Generate(toGen):
+    print(f"Generating dataset of {toGen} images")
     letters = string.ascii_letters
     textSize = range(1, 2)
     noise = range(0, 15)
     blur = range(1, 3)
     rotation = 10 # degrees
     font= os.listdir("fonts/")
-    print(font)
+    print(f"with {len(font)} fonts")
     textColour = [0]
     backgroundColour = [255]
     offset = range(-3, 3) # size of text as proportion of image
 
-    toGen = 100000
+    start_time = time.time()
     npAll = np.empty((toGen, 1024), dtype = np.uint8)
     npNames = np.empty(toGen, dtype = np.int8)
     for i in range(toGen):
@@ -96,11 +98,18 @@ if __name__ == "__main__":
         im = crop(im)
         npAll[i] = np.reshape(im, 1024)
         npNames[i] = letters.index(l)
-        if i%100 == 0:
-            print(i)
+        if i%17 == 0:
+            through = (i+1)/toGen
+            eta = ( (time.time()-start_time)/through ) * (1-through)
+            percentDone = round(10*through)
+            print("\033[A                             \033[A")
+            print(f"{i}/{toGen}   [{'#'*percentDone}{'-'*(10-percentDone)}]    {round(i/toGen*100)}%    eta: {round(eta, 2)}s")
             cv2.imwrite(f"trainSetImg/{i}.png", im)
-
+    print("\033[A\033[A")
+    print(f"{toGen}/{toGen}   [{'#'*percentDone}{'-'*(10-percentDone)}]    {round(i/toGen*100)}%    Finished in: {time.time()-start_time}s")
     np.save(f"trainSetNpOne/images.npy", npAll)
     np.save(f"trainSetNpOne/labels.npy", npNames)
-    
+
+if __name__ == "__main__":
+    Generate(10000)
         

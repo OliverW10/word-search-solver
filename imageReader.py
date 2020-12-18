@@ -4,6 +4,7 @@ import string
 import random
 from letterReader import LetterReader
 import image_to_numpy
+import time
 
 class ImageProcessing:
 	# both as a multiple of the image size
@@ -17,13 +18,12 @@ class ImageProcessing:
 		return image_to_numpy.load_image_file(fileName)
 
 	def processImage(img, pos, debug = False):
-		newImg = ImageProcessing.preProcessImg(img)
+		smallImg = cv2.resize(img, None, fx = 0.5, fy = 0.5)
+		newImg = ImageProcessing.preProcessImg(smallImg, debug = debug)
 		croppedImg = ImageProcessing.cropToRect(newImg, pos=pos)
-		print("croppedImg shape: ", croppedImg.shape)
-		smallImg = cv2.resize(croppedImg, None, fx = 0.1, fy = 0.1)
-		cv2.imshow("cropped image", smallImg)
-		cv2.waitKey()
-		cv2.destroyAllWindows()
+		# cv2.imshow("cropped image", smallImg)
+		# cv2.waitKey()
+		# cv2.destroyAllWindows()
 		grid, letters, letterImg = ImageProcessing.findLetters(croppedImg, debug)
 
 		if debug:
@@ -49,14 +49,21 @@ class ImageProcessing:
         or rect2[1] > rect1[1]+rect1[3]
         or rect2[1]+rect2[3] < rect1[1])
 
-	def preProcessImg(img):
+	def preProcessImg(img, debug = False):
+		if debug:
+			timeCheckpoints.append(["start preProcessImg", time.time()])
 		size = img.shape # height first
-		img = ImageProcessing.get_grayscale(img)
-		img = ImageProcessing.remove_noise(img, int(int(size[0]*0.003)/2)*2+1)
-		img = ImageProcessing.thresholding(img, int(int(size[0]*0.075)/2)*2+1, 4) # cant do this without first greyscaling
+		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+		cv2.medianBlur(img, int(int(size[0]*0.003)/2)*2+1, img)
+		print("shape", img.shape)
+		cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, int(int(size[0]*0.075)/2)*2+1, 4, img) # cant do this without first greyscaling
+		if debug:
+			timeCheckpoints.append(["finished preProcessImg", time.time()])
 		return img
 
 	def findLetters(img, debug = False):
+		if debug:
+			timeCheckpoints.append(["got to findLetters", time.time()])
 		if debug:
 			drawImg = img.copy()
 
@@ -73,6 +80,8 @@ class ImageProcessing:
 		if len(lettersContours) < 5:
 			print("\n\n\n NO LETTERS FOUND \n\n")
 
+		if debug:
+			timeCheckpoints.append(["found contours", time.time()])
 		# go through every contour and get the section of img around it
 		# done first so that they can be keras'ed as a batch
 		letterImgs = np.empty([len(lettersContours), 32, 32])
@@ -84,13 +93,11 @@ class ImageProcessing:
 			x,y,w,h = cv2.boundingRect(cnt)
 			midX = x+w/2
 			midY = y+h/2
-			maxSize = max(w, h) * (1.1)
+			maxSize = max(w, h) * 1.0
 			x = int(midX - maxSize/2)
 			y = int(midY - maxSize/2)
 			w = int(maxSize)
 			h = int(maxSize)
-			if debug:
-				cv2.rectangle(drawImg,(x,y),(x+w,y+h), 20, 3)
 
 			# crop the image to the square
 			crop = img[y:y+h, x:x+w]
@@ -106,9 +113,11 @@ class ImageProcessing:
 				letterPositions[i] = [x/img.shape[1], y/img.shape[0], w/img.shape[1], h/img.shape[0]]
 				letterImgs[i] = cv2.resize(crop, (32, 32))
 			else:
-				print("\nweird shaped contour  ", [x, y, w, h])
+				# print("\nweird shaped contour  ", [x, y, w, h])
 				badCnts.append(i)
-		print("average cnt size: ", avgSize)
+		# print("average cnt size: ", avgSize)
+		if debug:
+			timeCheckpoints.append(["finished boxing contours", time.time()])
 
 		# find any overlaps between letterContours and remove the one whose size is furthest from the average
 		for i1, rect1 in enumerate(letterPositions):
@@ -117,28 +126,39 @@ class ImageProcessing:
 					if ImageProcessing.boxCollide(rect1, rect2):
 						cnt1Size = cv2.contourArea(lettersContours[i1]) / (img.shape[0] * img.shape[1])
 						cnt2Size = cv2.contourArea(lettersContours[i2]) / (img.shape[0] * img.shape[1])
-						if abs(cnt1Size - avgSize) < abs(cnt1Size - avgSize):
-							badCnts.append(i1)
-						else:
+						# print("found overlapping boxes, with areas ", cnt1Size, " and ", cnt2Size)
+						if abs(cnt1Size - avgSize) < abs(cnt2Size - avgSize):
 							badCnts.append(i2)
-		
+						else:
+							badCnts.append(i1)
+
+		if debug:
+			timeCheckpoints.append(["finished box check", time.time()])
 		# get the letter for each contour and its confidence
 		letReader = LetterReader()
 		letters, neighbours = letReader.readLetters(letterImgs)
+		if debug:
+			timeCheckpoints.append(["finished letter classification", time.time()])
 
 		# combine the letters, their positions and the confidence and removes all badCnts
 		lettersPlus = []
 		for i in range(len(letters)):
 			if not i in badCnts:
 				lettersPlus.append( (string.ascii_letters[int(letters[i])], letterPositions[i]) )
+				if debug:
+					xI, yI, wI, hI = letterPositions[i]
+					x, y, w, h = xI*img.shape[1], yI*img.shape[0], wI*img.shape[1], hI*img.shape[0]
+					cv2.rectangle(drawImg, (int(x), int(y)),(int(x+w), int(y+h)), 20, 3)
 				# if debug:
 					# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
 			# elif debug:
 				# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0.5, 2, cv2.LINE_AA) 
 
 		# use the among of found contuors to determin the size of the grid
+		# print("letters num before: ", len(letterPositions))
+		# print("letters num after: ", len(lettersPlus))
 		gridSize = round(len(lettersPlus) ** 0.5)
-		print("\ngridSize: ", gridSize)
+		# print("\ngridSize: ", gridSize)
 
 		# position all letters in grid
 		grid = []
@@ -146,11 +166,11 @@ class ImageProcessing:
 		for row in range(gridSize):
 			rowLettersPlus = sorted( YsortedLetters[row*gridSize : (row+1)*gridSize] , key = lambda x:x[1][0] )
 			rowLetters = [letter[0] for letter in rowLettersPlus]
-			print(rowLetters)
+			# print(rowLetters)
 			grid.append(rowLetters)
 			# del YsortedLetters[row*gridSize : (row+1)*gridSize]
-		# print(grid)
-
+		if debug:
+			timeCheckpoints.append(["organised letters into grid", time.time()])
 		if debug:
 			return grid, lettersPlus, drawImg
 		else:
@@ -159,25 +179,18 @@ class ImageProcessing:
 	def cropToRect(img, **kwargs):
 		if "pos" in kwargs:
 			posNp = np.array(kwargs["pos"])
-			print("posNp: ", posNp)
-			cropPos = [int(posNp[0][0] * img.shape[1]),
-			int(posNp[2][0] * img.shape[1]),
-			int(posNp[0][1] * img.shape[1]),
-			int(posNp[2][1] * img.shape[0]),
-			]
+			p1 = (int(posNp[0][0] * img.shape[1]), int(posNp[0][1] * img.shape[0]))
+			p2 = (int(posNp[2][0] * img.shape[1]), int(posNp[2][1] * img.shape[0]))
 		elif "rect" in kwargs:
 			rect = np.array(kwargs["rect"]) * np.array([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
 		else:
 			raise Exception("cropToRect given no kwarg")
-		cropPos = ImageProcessing.fixCropPos(cropPos)
-		print("given: ", kwargs)
-		print("cropPos: ", cropPos)
-		print("img size: ", img.shape)
-		return img[cropPos[0]:cropPos[1], cropPos[2]:cropPos[3]]
+		cropPos = ImageProcessing.fixCropPos(p1, p2)
+		return img[p1[1]:p2[1], p1[0]:p2[0]]
 
-	def fixCropPos(x):
+	def fixCropPos(p1, p2):
 		# makes the first of each axis of the cropPos to be the smallest
-		return [ min(x[0], x[1]), max(x[0], x[1]) ,  min(x[2], x[3]), max(x[2], x[3])]
+		return [ min(p1[0], p2[0]), max(p1[0], p2[0]) ,  min(p1[1], p2[1]), max(p1[1], p2[1])]
 
 	def cropToPos(img, pos):
 		srcTri = np.array( [pos[0], pos[1], pos[2]] ).astype(np.float32) * np.array([img.shape[1], img.shape[0]]).astype(np.float32)
@@ -185,36 +198,7 @@ class ImageProcessing:
 
 		warp_mat = cv2.getAffineTransform(srcTri, dstTri)
 		warp_dst = cv2.warpAffine(img, warp_mat, (img.shape[1], img.shape[0]))
-		print(type(warp_dst), warp_dst.shape, warp_dst.dtype)
-		print(type(img), img.shape, img.dtype)
 		return warp_dst
-
-	def getAvgCol(img):
-		# for greyscale images
-		return np.sum(img)/(img.shape[0]*img.shape[1])
-
-	# https://nanonets.com/blog/ocr-with-tesseract/
-	# get grayscale image
-	def get_grayscale(image):
-		return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-	# noise removal
-	def remove_noise(image, rad = 5):
-		return cv2.medianBlur(image, rad)
-	 
-	#thresholding
-	def thresholding(image, rad = 11, static = 3): # size has to be odd
-		return cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, rad, static)
-
-	#dilation
-	def dilate(image, size): # size has to be odd
-		kernel = np.ones((size, size),np.uint8)
-		return cv2.dilate(image, kernel, iterations = 1)
-		
-	#erosion
-	def erode(image, size): # size has to be odd
-		kernel = np.ones((size, size),np.uint8)
-		return cv2.erode(image, kernel, iterations = 1)
 
 	def annotate(img, lettersPlus, cropPos, words):
 		cropRect = ( cropPos[0][0], cropPos[0][1], cropPos[2][0]-cropPos[0][0], cropPos[2][1] - cropPos[0][1] )
@@ -223,12 +207,19 @@ class ImageProcessing:
 		for l in lettersPlus:
 			x = int(lerp(cropPos[0][0], cropPos[2][0], l[1][0]) * img.shape[1])
 			y = int(lerp(cropPos[0][1], cropPos[2][1], l[1][1]) * img.shape[0])
-			# print(x, y)
 			img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
 			# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
 		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0]))
 		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0]))
 		cv2.rectangle(img, p1, p2, (0, 255, 0), 3)
+		return img
+
+	def drawGrid(grid, size = (800, 800)):
+		img = np.zeros(size)
+		img.fill(255)
+		for i in range(len(grid)):
+			for j in range(len(grid)):
+				cv2.putText(img, grid[j][i], (int(((i+0.5)/len(grid))*size[0]), int(((j+0.5)/len(grid))*size[1])), cv2.FONT_HERSHEY_SIMPLEX, size[0]*0.001, 0)
 		return img
 
 def lerp(a, b, n):
@@ -242,13 +233,31 @@ if __name__ == "__main__":
 		if i.lower().endswith(".png") or i.lower().endswith(".jpg"):
 			imageNames.append(i)
 
-	# print(imageNames)
+	checkpointAverages = []
 	for i in range(5):
 		img = cv2.imread("tests/"+imageNames[i]) # "tests/originals/4.png"
+		timeCheckpoints = [["start", time.time()]]
 		grid, letters, img = ImageProcessing.processImage(img, [[0, 0], [1, 0], [1, 1]], True)
+		
+		for j in range(1, len(timeCheckpoints)):
+			t = timeCheckpoints[j][1]-timeCheckpoints[j-1][1]
+			if i == 0:
+				checkpointAverages.append([timeCheckpoints[j][0], t])
+			else:
+				checkpointAverages[j-1][1] += t
+			print(timeCheckpoints[j][0], t)
+		print("\n")
+
 		cv2.imwrite("results/"+imageNames[i], img)
 		img = cv2.resize(img, None, fx = 0.3, fy = 0.3)
 		
-		cv2.imshow("Img", img)
-		cv2.waitKey(0)
-		cv2.destroyAllWindows()
+		# cv2.imshow("Img", img)
+		# cv2.waitKey(0)
+
+		# cv2.imshow("grid", ImageProcessing.drawGrid(grid))
+		# cv2.waitKey(0)
+		# cv2.destroyAllWindows()
+
+	for i in range(len(checkpointAverages)):
+		print("avg", checkpointAverages[i][0], checkpointAverages[i][1]/5)
+	print("avg total time", sum(x[1] for x in checkpointAverages)/5)

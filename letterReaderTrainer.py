@@ -24,19 +24,20 @@ def makeKnn(dataPer=0.01):
 
     return knn, testImages, testLabels
 
-if __name__ == "__main__":
+def testKnn():
     total_start_time = time.time()
     start_time = time.time()
-    knn, testImages, testLabels = makeKnn(0.0001)
+    knn, testImages, testLabels = makeKnn(0.01)
     print("train time ", time.time()-start_time)
 
     acc = 0
     start_time = time.time()
     ret,result,neighbours,dist = knn.findNearest(testImages,k=10)
-    print("result: ", result)
-    print("neighbours: ", neighbours)
-    print("dist: ", dist)
-    print("predict time ", time.time()-start_time)
+    # print("result: ", result)
+    # print("neighbours: ", neighbours)
+    # print("dist: ", dist)
+    predict_time = time.time()-start_time
+    print("predict time ", predict_time)
 
     start_time = time.time()
     correct = 0
@@ -46,5 +47,10 @@ if __name__ == "__main__":
             correct += 1
     print("test samples: ", len(testLabels))
     print("eval time ", time.time()-start_time)
-    print(f"\naccuracy {round(100*correct/len(result), 2)}%")
+    accuracy = 100*correct/len(result)
+    print(f"\naccuracy {round(accuracy, 2)}%")
     print("total time ", time.time()-total_start_time)
+    return accuracy, predict_time
+
+if __name__ == "__main__":
+    testKnn()
