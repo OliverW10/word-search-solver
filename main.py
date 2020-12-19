@@ -170,7 +170,7 @@ class LineUpPage(FloatLayout):
 		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.add_widget(self.continueButton)
 		self.continueButton.bind(on_press = self.continued)
-		self.continueButton.on_touch_down = self.buttonTouchCheck
+		self.on_touch_down = self.buttonTouchCheck
 
 		self.squareMargin = 0.1
 		# self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
@@ -186,7 +186,7 @@ class LineUpPage(FloatLayout):
 		if self.continueButton.collide_point(*touch.pos):
 			self.continued()
 		else:	
-			return self.on_touch_down(touch)
+			return self.movingLayout.on_touch_down(touch)
 
 	def setImage(self, img):
 		print("path given: ",img)
@@ -390,10 +390,9 @@ class SolvePage(GridLayout):
 	def solve(self, imgPath, lookWords, pos):
 		self.imgPath = imgPath
 		self.img = ImageProcessing.loadImg(self.imgPath)
-		grid, letters, _ = ImageProcessing.processImage(self.img, pos, False)
-		print(grid)
+		grid, gridPlus = ImageProcessing.processImage(self.img, pos, False)
 		foundWords = Solvers.wordSearch(grid, lookWords)
-		outImg = ImageProcessing.annotate(self.img, letters, pos, foundWords)
+		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
 		# cv2.imwrite("./result.png", outImg)
 		self.setImageBuf(outImg)
 		

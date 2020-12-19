@@ -5,16 +5,32 @@ import string
 import os
 import time
 
-def loadDatasetNpAll(*args): # slightly higher file size but much quicker loading
-    readimg_start = time.time()
-    images = np.load("trainSetNpOne/images.npy").astype(np.float32)
-    labels = np.load("trainSetNpOne/labels.npy").astype(np.float32)
-    print("load time: " + str(time.time() - readimg_start))
+def loadDatasetNpy():
+    print(os.listdir())
+    read_img_start = time.time()
+    with open("./trainSetNp/images.npy", "rb") as f:
+        f.seek(0, 0)
+        images = np.load(f).astype(np.float32)
+    with open("./trainSetNp/labels.npy", "rb") as f:
+        f.seek(0, 0)
+        labels = np.load(f).astype(np.float32)
+    print("load time: " + str(time.time() - read_img_start), "for", len(labels), "samples")
     return images, labels
+
+def loadDatasetNpz():
+    print(os.listdir())
+    read_img_start = time.time()
+    with open("./trainSetNp/dataZ.npz", "rb") as f:
+        data = np.load(f)
+        images = data["images"].astype(np.float32)
+        labels = data["labels"].astype(np.float32)
+        print("type: ", type(images), "   shape: ", images.shape)
+        print("load time: " + str(time.time() - read_img_start), "for", len(labels), "samples")
+        return images, labels
     
 def makeKnn(dataPer=0.01):
     # dataPer is the percentage of the data to use
-    allImages, allLabels = loadDatasetNpAll()
+    allImages, allLabels = loadDatasetNpz()
     testNum = int((dataPer)*len(allImages))+1
     trainImages, trainLabels = allImages[0:-testNum], allLabels[0:-testNum]
     testImages, testLabels = allImages[-testNum:-1], allLabels[-testNum:-1]

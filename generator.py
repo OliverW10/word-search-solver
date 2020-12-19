@@ -98,18 +98,19 @@ def Generate(toGen):
         im = crop(im)
         npAll[i] = np.reshape(im, 1024)
         npNames[i] = letters.index(l)
-        if i%17 == 0:
+        if i%107 == 0:
             through = (i+1)/toGen
             eta = ( (time.time()-start_time)/through ) * (1-through)
             percentDone = round(10*through)
             print("\033[A                             \033[A")
             print(f"{i}/{toGen}   [{'#'*percentDone}{'-'*(10-percentDone)}]    {round(i/toGen*100)}%    eta: {round(eta, 2)}s")
-            cv2.imwrite(f"trainSetImg/{i}.png", im)
+            # cv2.imwrite(f"trainSetImg/{i}.png", im)
     print("\033[A\033[A")
     print(f"{toGen}/{toGen}   [{'#'*percentDone}{'-'*(10-percentDone)}]    {round(i/toGen*100)}%    Finished in: {time.time()-start_time}s")
-    np.save(f"trainSetNpOne/images.npy", npAll)
-    np.save(f"trainSetNpOne/labels.npy", npNames)
+    np.save(f"trainSetNp/images.npy", npAll)
+    np.save(f"trainSetNp/labels.npy", npNames)
+    np.savez(f"trainSetNp/dataZ.npz", images=npAll, labels=npNames)
 
 if __name__ == "__main__":
-    Generate(10000)
+    Generate(50000)
         

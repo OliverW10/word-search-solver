@@ -8,7 +8,7 @@ import time
 
 class Solvers:
 	allWords = ["hello", "test", "python", "app"] # should be dataset of all words
-	def wordSearch1(grid, words, backwards):
+	def wordSearch1(grid, words):
 		# idea 1: create strings of all the vertical and horizontal and just use 'if word in string'
 
 		lines = []
@@ -20,26 +20,29 @@ class Solvers:
 			print(word, n)
 
 
-	def wordSearch2(grid, words, backwards):
+	def wordSearch2(grid, words):
 		# loop through grid looking for first letter of word, then around that for second and on
 
-		directions = [[1, 0], [0, 1], [1, 1], [1, -1]]
-		if backwards:
-			directions += [[-1, 0], [-1, -1], [-1, 1], [0, -1]]
+		# make all letters lowercase
+		lowerRow = lambda row:list(map(lambda x:x.lower(), row))
+		grid = list(map(lambda x:lowerRow(x), grid))
+		directions = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [-1, -1], [-1, 1], [0, -1]]
+
 		foundWords = {}
 		for n, word in enumerate(words):
-			# print("\n\n\n"+word)
+			foundWords[word] = []
+			print(word)
 			firsts = Solvers.findLetters(grid, word[0]) # find where all the first letters are
-			# print(firsts)
-			for i, pos in enumerate(firsts):
+			print(firsts)
+			for pos in firsts:
 				# print(f"\n\n next pos {pos} ")
-				for d, direction in enumerate(directions): # for each first letter try each direction
+				for direction in directions: # for each first letter try each direction
 					# print("\n next dir")
 					stillGoing = True
 					for i in range(1, len(word)): # iterate forwards checking if the letter is correct
 						x = pos[0] + direction[0]*i
 						y = pos[1] + direction[1]*i
-						if 0 < x < len(grid) and 0 < y < len(grid): # first checks if its inside the grid to prevent out-of-range-ing
+						if 0 <= x < len(grid) and 0 <= y < len(grid): # first checks if its inside the grid to prevent out-of-range-ing
 							if grid[x][y] != word[i]:
 								stillGoing = False
 								# print("wrong letter")
@@ -49,7 +52,7 @@ class Solvers:
 
 					if stillGoing:
 						# print(f"found word {word} {str([pos, ( pos[0] + direction[0]*len(word), pos[1] + direction[1]*len(word) ) ])}")
-						foundWords[word] = (pos, [ pos[0] + direction[0]*len(word), pos[1] + direction[1]*len(word) ] )
+						foundWords[word].append((pos, [ pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ] ))
 		return foundWords
 
 	def findLetters(grid, toFind):
@@ -58,15 +61,15 @@ class Solvers:
 		poss = []
 		for x, row in enumerate(grid):
 			for y, letter in enumerate(row):
-				if letter == toFind:
+				if letter.lower() == toFind.lower():
 					poss.append([x, y])
 		return poss
 
-	def wordSearch(grid, words, backwards = True, algo = 2):
+	def wordSearch(grid, words, algo = 2):
 		if algo == 1:
-			return Solvers.wordSearch1(grid, words, backwards)
+			return Solvers.wordSearch1(grid, words)
 		if algo == 2:
-			return Solvers.wordSearch2(grid, words, backwards)
+			return Solvers.wordSearch2(grid, words)
 
 
 if __name__ == "__main__":
@@ -110,17 +113,20 @@ if __name__ == "__main__":
 		return grid
 
 
-	testWords = ["ab"]
+	testWords = ["test", "hi"]
 
-	testGrid = generateWordSearch(100, testWords)
-	for _, i in enumerate(testGrid):
-		for _, j in enumerate(i):
+	testGrid = [["a"]*10 for x in range(10)]# generateWordSearch(100, testWords)
+	testGrid[2][5], testGrid[2][6], testGrid[2][7], testGrid[2][8] = "t", "e", "s", "t"
+	testGrid[7][0], testGrid[6][0] = "h", "i"
+	testGrid[5][0], testGrid[6][1] = "h", "h"
+	for i in testGrid:
+		for j in i:
 			print(j, end = " ")
 		print("")
 	print("\n"*2)
 
-	start_time = time.time()
-	for i in range(1000):
-		Solvers.wordSearch(testGrid, testWords)
-	print("time: ", (time.time()-start_time)/1000)
+	# start_time = time.time()
+	# for i in range(1000):
+		# Solvers.wordSearch(testGrid, testWords)
+	# print("time: ", (time.time()-start_time)/1000)
 	print(Solvers.wordSearch(testGrid, testWords))

@@ -14,22 +14,23 @@ class ImageProcessing:
 	maxBoxSize = 1
 	minBoxSize = 0
 
+	letReader = LetterReader()
+
+	shrinkRatio = 0.5
+
 	def loadImg(fileName):
 		return image_to_numpy.load_image_file(fileName)
 
 	def processImage(img, pos, debug = False):
-		smallImg = cv2.resize(img, None, fx = 0.5, fy = 0.5)
+		croppedImg = ImageProcessing.cropToRect(img, pos=pos)
+		smallImg = cv2.resize(croppedImg, None, fx = ImageProcessing.shrinkRatio, fy = ImageProcessing.shrinkRatio)
 		newImg = ImageProcessing.preProcessImg(smallImg, debug = debug)
-		croppedImg = ImageProcessing.cropToRect(newImg, pos=pos)
 		# cv2.imshow("cropped image", smallImg)
 		# cv2.waitKey()
 		# cv2.destroyAllWindows()
-		grid, letters, letterImg = ImageProcessing.findLetters(croppedImg, debug)
+		grid, letters = ImageProcessing.findLetters(newImg, debug)
 
-		if debug:
-			return grid, letters, letterImg
-		else:
-			return grid, letters, letterImg
+		return grid, letters
 
 	def boxOverlap(box1, box2):
 		# finds the total area of overlap between two rects (x, y, w, h)
@@ -135,8 +136,7 @@ class ImageProcessing:
 		if debug:
 			timeCheckpoints.append(["finished box check", time.time()])
 		# get the letter for each contour and its confidence
-		letReader = LetterReader()
-		letters, neighbours = letReader.readLetters(letterImgs)
+		letters, neighbours = ImageProcessing.letReader.readLetters(letterImgs)
 		if debug:
 			timeCheckpoints.append(["finished letter classification", time.time()])
 
@@ -162,19 +162,19 @@ class ImageProcessing:
 
 		# position all letters in grid
 		grid = []
+		gridPlus = []
 		YsortedLetters = sorted(lettersPlus, key = lambda x:x[1][1])
 		for row in range(gridSize):
 			rowLettersPlus = sorted( YsortedLetters[row*gridSize : (row+1)*gridSize] , key = lambda x:x[1][0] )
 			rowLetters = [letter[0] for letter in rowLettersPlus]
-			# print(rowLetters)
+			print(rowLetters)
 			grid.append(rowLetters)
+			gridPlus.append(rowLettersPlus)
 			# del YsortedLetters[row*gridSize : (row+1)*gridSize]
 		if debug:
 			timeCheckpoints.append(["organised letters into grid", time.time()])
-		if debug:
-			return grid, lettersPlus, drawImg
-		else:
-			return grid, lettersPlus, np.zeros((10, 10))
+
+		return grid, gridPlus
 
 	def cropToRect(img, **kwargs):
 		if "pos" in kwargs:
@@ -200,17 +200,34 @@ class ImageProcessing:
 		warp_dst = cv2.warpAffine(img, warp_mat, (img.shape[1], img.shape[0]))
 		return warp_dst
 
-	def annotate(img, lettersPlus, cropPos, words):
-		cropRect = ( cropPos[0][0], cropPos[0][1], cropPos[2][0]-cropPos[0][0], cropPos[2][1] - cropPos[0][1] )
-		for i, word in enumerate(words):
-			pass
-		for l in lettersPlus:
-			x = int(lerp(cropPos[0][0], cropPos[2][0], l[1][0]) * img.shape[1])
-			y = int(lerp(cropPos[0][1], cropPos[2][1], l[1][1]) * img.shape[0])
-			img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
-			# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
-		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0]))
-		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0]))
+	def unCropPos(pos, p1, imgSize):
+		newX = pos[0]*imgSize[1]*ImageProcessing.shrinkRatio
+		newY = pos[1]*imgSize[0]*ImageProcessing.shrinkRatio
+		return newX+p1[0], newY+p1[1]
+
+	def annotate(img, gridPlus, cropPos, words):
+		# cropPos = ImageProcessing.fixCropPos()
+		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0])) # top left
+		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0])) # bottom right
+		for word in words.keys():
+			if len(words[word]) >= 1:
+				wordPos = words[word][0]
+				print("wordPos",wordPos)
+				letterRects = [ gridPlus[wordPos[0][0]][wordPos[0][1]][1], gridPlus[wordPos[1][0]][wordPos[1][1]][1] ]
+				letterPoints = [ [letterRects[0][0]+letterRects[0][2]/2, letterRects[0][1]+letterRects[0][3]/2] , [letterRects[1][0]+letterRects[1][2]/2, letterRects[1][1]+letterRects[1][3]/2]]
+				print("letter points", letterPoints)
+				linePoints = [ImageProcessing.unCropPos(letterPoints[i], p1, img.shape) for i in range(2)]
+				print("line points", linePoints)
+				pts = np.array(linePoints, np.int32)
+				pts = pts.reshape((-1,1,2))
+				cv2.polylines(img, [pts], False, (0,255,255), 5)
+			else:
+				print(f"word {word} not found")
+		# for l in lettersPlus:
+		# 	x = int(lerp(cropPos[0][0], cropPos[2][0], l[1][0]) * img.shape[1])
+		# 	y = int(lerp(cropPos[0][1], cropPos[2][1], l[1][1]) * img.shape[0])
+		# 	img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
+		# 	# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
 		cv2.rectangle(img, p1, p2, (0, 255, 0), 3)
 		return img
 
