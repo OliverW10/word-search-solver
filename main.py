@@ -362,19 +362,23 @@ class WordsPage(FloatLayout):
 
 
 ### 5 ###
-class SolvePage(GridLayout):
+class SolvePage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
-		self.cols = 1
-		self.add_widget(Label(text="LETS GOOOO!!!!"))
 
+		self.againButton = Button(text="Again", pos=(Window.size[0]*0.01, Window.size[1]*0.01), size_hint=(0.1, 0.1))
 
 		with self.canvas:
 			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]), source = "temp_img.png")
+		self.add_widget(self.againButton)
+		self.againButton.bind(on_press=self.goAgain)
 		# self.imgWidget = Image(source="temp_img.png")
 		# self.add_widget(self.rect)
 		self.imgPath = "not set"
+
+	def goAgain(self, *args):
+		self.caller.screen_manager.current = "Start"
 
 	def setImageBuf(self, img):
 		self.imgNp = np.flip(self.img, 0)

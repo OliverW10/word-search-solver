@@ -200,9 +200,9 @@ class ImageProcessing:
 		warp_dst = cv2.warpAffine(img, warp_mat, (img.shape[1], img.shape[0]))
 		return warp_dst
 
-	def unCropPos(pos, p1, imgSize):
-		newX = pos[0]*imgSize[1]*ImageProcessing.shrinkRatio
-		newY = pos[1]*imgSize[0]*ImageProcessing.shrinkRatio
+	def unCropPos(pos, p1, p2, imgSize):
+		newX = pos[0]*(p2[0]-p1[0])
+		newY = pos[1]*(p2[1]-p1[1])
 		return newX+p1[0], newY+p1[1]
 
 	def annotate(img, gridPlus, cropPos, words):
@@ -216,11 +216,11 @@ class ImageProcessing:
 				letterRects = [ gridPlus[wordPos[0][0]][wordPos[0][1]][1], gridPlus[wordPos[1][0]][wordPos[1][1]][1] ]
 				letterPoints = [ [letterRects[0][0]+letterRects[0][2]/2, letterRects[0][1]+letterRects[0][3]/2] , [letterRects[1][0]+letterRects[1][2]/2, letterRects[1][1]+letterRects[1][3]/2]]
 				print("letter points", letterPoints)
-				linePoints = [ImageProcessing.unCropPos(letterPoints[i], p1, img.shape) for i in range(2)]
+				linePoints = [ImageProcessing.unCropPos(letterPoints[i], p1, p2, img.shape) for i in range(2)]
 				print("line points", linePoints)
 				pts = np.array(linePoints, np.int32)
 				pts = pts.reshape((-1,1,2))
-				cv2.polylines(img, [pts], False, (0,255,255), 5)
+				cv2.polylines(img, [pts], False, (0,255,255), int(img.shape[0]/500))
 			else:
 				print(f"word {word} not found")
 		# for l in lettersPlus:
