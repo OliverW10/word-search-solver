@@ -35,7 +35,6 @@ from kivy.utils import platform
 import time
 import numpy as np
 import image_to_numpy
-# import cv2
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -88,8 +87,9 @@ class LoadPage(GridLayout):
 		self.file_thing = FileChooserIconView()
 		self.file_thing.bind(on_submit=self.choseFile)
 		if platform == "android":
-			# self.file_thing.path = primary_external_storage_path()
-			self.file_thing.path = "data/data/org.test.myapp"
+			from os.path import join
+			print("primary_external_storage_path : ", join(primary_external_storage_path(), "DCIM"))
+			self.file_thing.path = join(primary_external_storage_path(), "DCIM")
 		else:
 			self.file_thing.path =  "./tests/fulls"
 		self.add_widget(self.file_thing)
