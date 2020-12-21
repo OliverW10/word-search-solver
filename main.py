@@ -32,6 +32,7 @@ from kivy.lang.builder import Builder
 from kivy.properties import *
 from kivy.graphics.texture import Texture
 from kivy.utils import platform
+from kivy_garden.xcamera import XCamera
 import time
 import numpy as np
 import image_to_numpy
@@ -71,17 +72,16 @@ class StartPage(GridLayout):
 
 	def loadImage(self, instance):
 		self.title.text = "test"
-		print("go to load image page")
-		self.caller.screen_manager.current = "Load"
+		self.caller.goToPage("Load")
 
 	def launchCamera(self, instance):
-		print("go to camera page")
-		self.caller.screen_manager.current = "Camera"
+		self.caller.goToPage("Camera")
 
 ### step 2, load###
 class LoadPage(GridLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
+		print("caller goToPage", type(self.caller.goToPage))
 		super().__init__(**kwargs)
 		self.cols = 1
 		self.file_thing = FileChooserIconView()
@@ -95,8 +95,8 @@ class LoadPage(GridLayout):
 		self.add_widget(self.file_thing)
 
 	def choseFile(self, x, *args):
-		self.caller.screen_manager.current = "LineUp"
-		self.caller.line_up_screen.setImage(x.selection[0])
+		self.caller.pages["LineUp"].setImage(x.selection[0], camera = False)
+		self.caller.goToPage("LineUp")
 		# print("chosen file: ", x.path, x.selection)
 
 
@@ -123,31 +123,17 @@ class CameraPage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 
-		self.camera = Camera(play = False)
+		self.camera = XCamera(on_picture_taken = self.picture_taken)
 		self.add_widget(self.camera)
-		self.camera.play = True
-		self.camera.bind(on_texture=lambda x:print("new frame"))
-		self.camera.bind(on_load=lambda x:print("camera started"))
-
-		self.picButton = Button(text = "Take Picture", pos_hint = {"center_x":0.5, "y":0.125}, size_hint = (0.1, 0.1))
-		self.picButton.bind(on_press = self.takePictue)
-		self.add_widget(self.picButton)
 
 		self.title = Label(text="Try to get the grid flat and square-on")
 		self.title.size_hint = (1, 0.1)
 		self.add_widget(self.title)
 
-	def takePictue(self, name = "date"):
-		img_name = time.strftime("%Y%m%d_%H%M%S")
-		self.camera.export_to_png(f"./IMG_{img_name}.png")
-		print("Captured "+f"./IMG_{img_name}.png")
-
-	def cameraOn(self):
-		self.camera.play = True
-
-	def cameraOff(self):
-		self.camera.play = False
-
+	def picture_taken(self, obj, filename):
+		self.caller.pages["LineUp"].setImage(filename, camera = True)
+		print('Picture taken and saved to {}'.format(filename))
+		self.caller.goToPage("LineUp")
 
 def scaleNumber(n, x1, x2, y1, y2):
 	range1 = x2-x1
@@ -173,35 +159,34 @@ class LineUpPage(FloatLayout):
 		self.on_touch_down = self.buttonTouchCheck
 
 		self.squareMargin = 0.1
-		# self.bind(on_size=lambda _:self.makeSquare(), on_pos=lambda _:self.makeSquare(self.squareMargin))
+		self.createImgTexture()
 		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
 		# self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
-		self.createImgTexture()
 		self.makeSquare(self.squareMargin)
 
 	def buttonTouchCheck(self, touch, *args):
-		print("Widget Pos", self.continueButton.pos, self.continueButton.size)
-		print("Touch pos ", self.to_local(touch.pos[0], touch.pos[1]))
-		print("Touch Check ", self.continueButton.collide_point(touch.pos[0], touch.pos[1]))
+		# print("Widget Pos", self.continueButton.pos, self.continueButton.size)
+		# print("Touch pos ", self.to_local(touch.pos[0], touch.pos[1]))
+		# print("Touch Check ", self.continueButton.collide_point(touch.pos[0], touch.pos[1]))
 		if self.continueButton.collide_point(*touch.pos):
 			self.continued()
 		else:	
 			return self.movingLayout.on_touch_down(touch)
 
-	def setImage(self, img):
+	def setImage(self, img, camera = False):
 		print("path given: ",img)
 		self.imgFilename = img
-		self.createImgTexture()
+		self.createImgTexture(img)
 		self.makeSquare(self.squareMargin)
 
 	def checkSet(self):
-		return imgFilename != "temp_img.png"
+		return self.imgFilename != "temp_img.png"
 
 	def continued(self, *args):
 		print(self.getPosCv())
 		if self.checkSet:
-			self.caller.words_screen.setStuff(self.imgFilename, self.getPosCv())
-			self.caller.screen_manager.current = "Words"
+			self.caller.pages["Words"].setStuff(self.imgFilename, self.getPosCv())
+			self.caller.goToPage("Words")
 
 	def getPosKivy(self):
 		# gets the coordinates of each corner of the line-up square with the origin being bottom left in pixels
@@ -246,21 +231,20 @@ class LineUpPage(FloatLayout):
 		1 - (kivyPosPe[1]-self.imgPos[1])/self.imgSize[1] ] #scaleNumber(kivyPosPe[1], 0, 1, self.imgPos[1], self.imgPos[1]+self.imgSize[1])
 		return imPos
 
-	def createImgTexture(self, source = False):
-		if source != False:
+	def createImgTexture(self, source = "temp_img.png"):
+		if source != "temp_img.png":
+			print("source for createImgTexture was", source)
 			self.imgFilename = source
-		if self.checkSet:
-			# loads image into numpy array
-			self.imgNp = image_to_numpy.load_image_file(self.imgFilename).astype(np.uint8) # ImageProcessing.loadImg(self.imgFilename)
-			self.imgNp = np.flip(self.imgNp, 0)
-			# turn numpy array into buffer
-			self.imgBuf = self.imgNp.tostring()
-			# then into kivy texture
-			self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
-			self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
-			return True
 		else:
-			return False
+			print("didnt get source for createImgTexture")
+		# loads image into numpy array
+		self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8)
+		self.imgNp = np.flip(self.imgNp, 0)
+		# turn numpy array into buffer
+		self.imgBuf = self.imgNp.tostring()
+		# then into kivy texture
+		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
+		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
 
 	def makeSquare(self, margin):
 		# print("square resizers callback called")
@@ -343,8 +327,8 @@ class WordsPage(FloatLayout):
 		del self.wordsWidgets[wordIndex]
 
 	def continueToSolve(self, *args):
-		self.caller.solve_screen.solve(self.img, self.words, self.cropPos)
-		self.caller.screen_manager.current = "Solve"
+		self.caller.pages["Solver"].solve(self.img, self.words, self.cropPos)
+		self.caller.goToPage("Solve")
 
 	def getSet(self):
 		return self.img == "not set yet" and self.cropPos == "not set yet"
@@ -370,7 +354,7 @@ class SolvePage(FloatLayout):
 		self.againButton = Button(text="Again", pos=(Window.size[0]*0.01, Window.size[1]*0.01), size_hint=(0.1, 0.1))
 
 		with self.canvas:
-			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]), source = "temp_img.png")
+			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]))
 		self.add_widget(self.againButton)
 		self.againButton.bind(on_press=self.goAgain)
 		# self.imgWidget = Image(source="temp_img.png")
@@ -378,10 +362,10 @@ class SolvePage(FloatLayout):
 		self.imgPath = "not set"
 
 	def goAgain(self, *args):
-		self.caller.screen_manager.current = "Start"
+		self.caller.goToPage("Start")
 
 	def setImageBuf(self, img):
-		self.imgNp = np.flip(self.img, 0)
+		self.imgNp = np.flip(img, 0)
 		# takes a numpy image
 		# turn numpy array into buffer
 		self.imgBuf = self.imgNp.tostring()
@@ -389,16 +373,16 @@ class SolvePage(FloatLayout):
 		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
 		self.rect.texture = self.imgTex
-		# self.rect.reload()
 
 	def solve(self, imgPath, lookWords, pos):
+		print("solve looking for", lookWords, "in", imgPath, "at", pos)
 		self.imgPath = imgPath
 		self.img = ImageProcessing.loadImg(self.imgPath)
 		grid, gridPlus = ImageProcessing.processImage(self.img, pos, False)
 		foundWords = Solvers.wordSearch(grid, lookWords)
-		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
+		ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
 		# cv2.imwrite("./result.png", outImg)
-		self.setImageBuf(outImg)
+		self.setImageBuf(self.img)
 		
 Builder.load_string('''
 <RotatedImage>:
@@ -415,43 +399,46 @@ class RotatedImage(Image):
     angle = NumericProperty()
 
 class SolverApp(App):
-	def build(self):
-		self.screen_manager = ScreenManager()
-
-		self.start_page = StartPage(self)
-		screen = Screen(name = "Start")
-		screen.add_widget(self.start_page)
+	def addPage(self, name, pageClass):
+		self.pages[name] = pageClass(self)
+		screen = Screen(name=name)
+		screen.add_widget(self.pages[name])
 		self.screen_manager.add_widget(screen)
 
+	def build(self):
+		self.screen_manager = ScreenManager()
+		self.lastPages = []
+		self.pages = {}
+
+		self.addPage("Start", StartPage)
+
+		self.addPage("Load", LoadPage)
+
+		self.addPage("Camera", CameraPage)
+
+		self.addPage("LineUp", LineUpPage)
+
+		self.addPage("Words", WordsPage)
+
+		self.addPage("Solver", SolvePage)
 		self.solve_screen = SolvePage(self)
 		screen = Screen(name="Solve")
 		screen.add_widget(self.solve_screen)
 		self.screen_manager.add_widget(screen)
 
-		self.load_screen = LoadPage(self)
-		screen = Screen(name="Load")
-		screen.add_widget(self.load_screen)
-		self.screen_manager.add_widget(screen)
-
-		self.camera_screen = CameraPage(self)
-		screen = Screen(name="Camera")
-		self.camera_screen.bind(on_pre_enter=self.camera_screen.cameraOn)
-		self.camera_screen.bind(on_pre_leave=self.camera_screen.cameraOff)
-		screen.add_widget(self.camera_screen)
-		self.screen_manager.add_widget(screen)
-
-		self.words_screen = WordsPage(self)
-		screen = Screen(name="Words")
-		screen.add_widget(self.words_screen)
-		self.screen_manager.add_widget(screen)
-
-		self.line_up_screen = LineUpPage(self)
-		screen = Screen(name="LineUp")
-		screen.add_widget(self.line_up_screen)
-		self.screen_manager.add_widget(screen)
-
 
 		return self.screen_manager
+
+	def goToPage(self, name):
+		print(f"going to {name} page")
+		self.lastPages.append(self.screen_manager.current)
+		self.screen_manager.current = name
+
+	def backPage(self):
+		if len(self.lastPages) >= 1:
+			self.screen_manager.current = self.lastPages[-1]
+			del self.lastPages[-1]
+
 
 class TestApp(App):
 	def build(self):

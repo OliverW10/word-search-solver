@@ -205,7 +205,7 @@ class ImageProcessing:
 		newY = pos[1]*(p2[1]-p1[1])
 		return newX+p1[0], newY+p1[1]
 
-	def annotate(img, gridPlus, cropPos, words):
+	def annotate(img, gridPlus, cropPos, words): # works in place
 		# cropPos = ImageProcessing.fixCropPos()
 		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0])) # top left
 		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0])) # bottom right
@@ -229,7 +229,6 @@ class ImageProcessing:
 		# 	img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
 		# 	# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
 		cv2.rectangle(img, p1, p2, (0, 255, 0), 3)
-		return img
 
 	def drawGrid(grid, size = (800, 800)):
 		img = np.zeros(size)
