@@ -33,6 +33,7 @@ from kivy.properties import *
 from kivy.graphics.texture import Texture
 from kivy.utils import platform
 from kivy_garden.xcamera import XCamera
+from kivy.garden.filechooserthumbview import FileChooserThumbView
 import time
 import numpy as np
 import image_to_numpy
@@ -44,7 +45,7 @@ from imageReader import ImageProcessing
 if platform == "android":
 	from android.permissions import request_permissions, Permission
 	from android.storage import primary_external_storage_path
-	request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE])
+	request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE, Permission.CAMERA])
 
 ### step 1 ###
 class StartPage(GridLayout):
@@ -84,7 +85,7 @@ class LoadPage(GridLayout):
 		print("caller goToPage", type(self.caller.goToPage))
 		super().__init__(**kwargs)
 		self.cols = 1
-		self.file_thing = FileChooserIconView()
+		self.file_thing = FileChooserThumbView(showthumbs=0)
 		self.file_thing.bind(on_submit=self.choseFile)
 		if platform == "android":
 			from os.path import join
@@ -98,24 +99,6 @@ class LoadPage(GridLayout):
 		self.caller.pages["LineUp"].setImage(x.selection[0], camera = False)
 		self.caller.goToPage("LineUp")
 		# print("chosen file: ", x.path, x.selection)
-
-
-class WordWidget(BoxLayout):
-	def __init__(self, text, caller, **kwargs):
-		self.caller = caller
-		super().__init__(**kwargs)
-		self.cols = 2
-		self.textLabel = Label(text=text)
-		self.add_widget(self.textLabel)
-
-		self.removeButton = Button(text="x", size_hint_max_x=50)
-		# self.removeButton.size_hint = (0.2, 0.2)
-		self.removeButton.bind(on_press=self.remove)
-		self.add_widget(self.removeButton)
-		# self.size_hint_max_y = 0.02
-
-	def remove(self, *args):
-		self.caller.removeWord(self.textLabel.text)
 
 ### step 2, camera ###
 class CameraPage(FloatLayout):
@@ -328,7 +311,7 @@ class WordsPage(FloatLayout):
 
 	def continueToSolve(self, *args):
 		self.caller.pages["Solver"].solve(self.img, self.words, self.cropPos)
-		self.caller.goToPage("Solve")
+		self.caller.goToPage("Solver")
 
 	def getSet(self):
 		return self.img == "not set yet" and self.cropPos == "not set yet"
@@ -344,6 +327,22 @@ class WordsPage(FloatLayout):
 		else:
 			return True
 
+class WordWidget(BoxLayout):
+	def __init__(self, text, caller, **kwargs):
+		self.caller = caller
+		super().__init__(**kwargs)
+		self.cols = 2
+		self.textLabel = Label(text=text)
+		self.add_widget(self.textLabel)
+
+		self.removeButton = Button(text="x", size_hint_max_x=50)
+		# self.removeButton.size_hint = (0.2, 0.2)
+		self.removeButton.bind(on_press=self.remove)
+		self.add_widget(self.removeButton)
+		# self.size_hint_max_y = 0.02
+
+	def remove(self, *args):
+		self.caller.removeWord(self.textLabel.text)
 
 ### 5 ###
 class SolvePage(FloatLayout):
@@ -380,9 +379,9 @@ class SolvePage(FloatLayout):
 		self.img = ImageProcessing.loadImg(self.imgPath)
 		grid, gridPlus = ImageProcessing.processImage(self.img, pos, False)
 		foundWords = Solvers.wordSearch(grid, lookWords)
-		ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
+		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
 		# cv2.imwrite("./result.png", outImg)
-		self.setImageBuf(self.img)
+		self.setImageBuf(outImg)
 		
 Builder.load_string('''
 <RotatedImage>:
@@ -421,11 +420,6 @@ class SolverApp(App):
 		self.addPage("Words", WordsPage)
 
 		self.addPage("Solver", SolvePage)
-		self.solve_screen = SolvePage(self)
-		screen = Screen(name="Solve")
-		screen.add_widget(self.solve_screen)
-		self.screen_manager.add_widget(screen)
-
 
 		return self.screen_manager
 
@@ -450,7 +444,7 @@ class TestApp(App):
 		self.layout.add_widget(self.testButton)
 		return self.layout
 
-__version__ = "0.0.1"
+__version__ = "0.1"
 if __name__ == "__main__":
 	solver_app = SolverApp()
 	SolverApp().run()

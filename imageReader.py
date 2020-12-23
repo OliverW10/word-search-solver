@@ -206,6 +206,7 @@ class ImageProcessing:
 		return newX+p1[0], newY+p1[1]
 
 	def annotate(img, gridPlus, cropPos, words): # works in place
+		drawImg = img.copy()
 		# cropPos = ImageProcessing.fixCropPos()
 		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0])) # top left
 		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0])) # bottom right
@@ -220,7 +221,7 @@ class ImageProcessing:
 				print("line points", linePoints)
 				pts = np.array(linePoints, np.int32)
 				pts = pts.reshape((-1,1,2))
-				cv2.polylines(img, [pts], False, (0,255,255), int(img.shape[0]/500))
+				cv2.polylines(drawImg, [pts], False, (0,255,255), int(img.shape[0]/500))
 			else:
 				print(f"word {word} not found")
 		# for l in lettersPlus:
@@ -228,7 +229,8 @@ class ImageProcessing:
 		# 	y = int(lerp(cropPos[0][1], cropPos[2][1], l[1][1]) * img.shape[0])
 		# 	img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
 		# 	# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
-		cv2.rectangle(img, p1, p2, (0, 255, 0), 3)
+		cv2.rectangle(drawImg, p1, p2, (0, 255, 0), 3)
+		return drawImg
 
 	def drawGrid(grid, size = (800, 800)):
 		img = np.zeros(size)
