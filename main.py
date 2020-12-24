@@ -1,21 +1,9 @@
-# import logging
-# logging.getLogger("kivy").setLevel(logging.ERROR)
-# logging.getLogger("keras").setLevel(logging.ERROR)
-# import os
-# import sys
-# sys.stderr = open('output.txt', 'w')
-# sys.stdout = sys.stderr
-# 
-# from kivy.logger import LoggerHistory
-# print('\n'.join([str(l) for l in LoggerHistory.history]))
-# os.environ["KIVY_NO_CONSOLELOG"] = "1"
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import kivy
 from kivymd.app import MDApp as App
 from kivymd.uix.label import MDLabel as Label
-from kivymd.uix.gridlayout import GridLayout
-from kivymd.uix.floatlayout import FloatLayout
-from kivymd.uix.button import MDRectangleFlatButton as Button
+from kivymd.uix.gridlayout import MDGridLayout as GridLayout
+from kivymd.uix.floatlayout import MDFloatLayout as FloatLayout
+from kivymd.uix.button import MDRectangleFlatButton, MDRaisedButton
 from kivymd.uix.textfield import MDTextField as TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.scatter import Scatter
@@ -41,28 +29,33 @@ if platform == "android":
 	request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE, Permission.CAMERA])
 
 ### step 1 ###
-class StartPage(GridLayout):
+class StartPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
-		self.cols = 1
 
 		self.title = Label(text = "Find-a-word Solver")
-		self.title.size_hint = (1, 0.2)
+		self.title.size_hint = (1, 0.1)
+		self.title.pos_hint = {"center_x":0.5, "y":0.9}
+		self.title.halign = "center"
 		self.add_widget(self.title)
 
-		self.buttons = GridLayout()
+		self.buttons = FloatLayout(adaptive_size=True)
 		self.buttons.cols = 2
 
-		self.loadButton = Button(text="Load File")
+		self.loadButton = MDRaisedButton(text="Load File")
+		self.loadButton.size_hint = (0.9, 0.4)
+		self.loadButton.pos_hint = {"x":0.05, "y":0.05}
 		self.loadButton.bind(on_press = self.loadImage)
-		self.buttons.add_widget(self.loadButton)
+		self.add_widget(self.loadButton)
 
-		self.cameraButton = Button(text = "Camera (WIP)")
+		self.cameraButton = MDRaisedButton(text = "Camera (WIP)")
+		self.cameraButton.size_hint = (0.9, 0.4)
+		self.cameraButton.pos_hint = {"x":0.05, "y":0.5}
 		self.cameraButton.bind(on_press = self.launchCamera)
-		self.buttons.add_widget(self.cameraButton)
+		self.add_widget(self.cameraButton)
 
-		self.add_widget(self.buttons)
+		# self.add_widget(self.buttons)
 
 	def loadImage(self, instance):
 		self.title.text = "test"
@@ -129,7 +122,7 @@ class LineUpPage(FloatLayout):
 		self.movingLayout.do_rotation = False
 		self.add_widget(self.movingLayout)
 
-		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.continueButton = MDRaisedButton(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.add_widget(self.continueButton)
 		self.continueButton.bind(on_press = self.continued)
 		self.on_touch_down = self.buttonTouchCheck
@@ -270,7 +263,7 @@ class WordsPage(FloatLayout):
 		self.textinput.bind(on_text_validate=self.addWord)
 		self.add_widget(self.textinput)
 
-		self.addButton = Button(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.addButton = MDRaisedButton(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.addButton.bind(on_press = self.addWord)
 		self.add_widget(self.addButton)
 
@@ -281,7 +274,7 @@ class WordsPage(FloatLayout):
 
 		self.add_widget(self.wordsLayout)
 
-		self.continueButton = Button(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
+		self.continueButton = MDRaisedButton(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
 		self.add_widget(self.continueButton)
 		self.continueButton.bind(on_press = self.continueToSolve)
 
@@ -328,7 +321,7 @@ class WordWidget(BoxLayout):
 		self.textLabel = Label(text=text)
 		self.add_widget(self.textLabel)
 
-		self.removeButton = Button(text="x", size_hint_max_x=50)
+		self.removeButton = MDRaisedButton(text="x", size_hint_max_x=50)
 		# self.removeButton.size_hint = (0.2, 0.2)
 		self.removeButton.bind(on_press=self.remove)
 		self.add_widget(self.removeButton)
@@ -343,7 +336,7 @@ class SolvePage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 
-		self.againButton = Button(text="Again", pos=(Window.size[0]*0.01, Window.size[1]*0.01), size_hint=(0.1, 0.1))
+		self.againButton = MDRaisedButton(text="Again", pos=(Window.size[0]*0.01, Window.size[1]*0.01), size_hint=(0.1, 0.1))
 
 		with self.canvas:
 			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]))
@@ -416,7 +409,7 @@ class TestApp(App):
 		self.layout = BoxLayout()
 		self.layout.cols = 2
 		self.thing = Label(text="test label")
-		self.testButton = Button(text="test button")
+		self.testButton = MDRaisedButton(text="test button")
 		self.layout.add_widget(self.thing)
 		self.layout.add_widget(self.testButton)
 		return self.layout
