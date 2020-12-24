@@ -18,17 +18,13 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.camera import Camera
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.clock import Clock
 from kivy.graphics import *
 from kivy.core.window import Window
-from kivy.graphics.transformation import Matrix
-from kivy.lang.builder import Builder
 from kivy.properties import *
 from kivy.graphics.texture import Texture
 from kivy.utils import platform
@@ -383,20 +379,6 @@ class SolvePage(FloatLayout):
 		# cv2.imwrite("./result.png", outImg)
 		self.setImageBuf(outImg)
 		
-Builder.load_string('''
-<RotatedImage>:
-    canvas.before:
-        Rotate:
-            angle: root.angle
-            axis: 0, 0, 1
-            origin: root.center
-    canvas.after:
-        PopMatrix
-''')
-
-class RotatedImage(Image):
-    angle = NumericProperty()
-
 class SolverApp(App):
 	def addPage(self, name, pageClass):
 		self.pages[name] = pageClass(self)
