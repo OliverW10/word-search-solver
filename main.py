@@ -11,18 +11,15 @@
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import kivy
-from kivy.app import App
-from kivy.uix.label import Label
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
+from kivymd.app import MDApp as App
+from kivymd.uix.label import MDLabel as Label
+from kivymd.uix.gridlayout import GridLayout
+from kivymd.uix.floatlayout import FloatLayout
+from kivymd.uix.button import MDRectangleFlatButton as Button
+from kivymd.uix.textfield import MDTextField as TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.uix.camera import Camera
-from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.relativelayout import RelativeLayout
+from kivymd.uix.boxlayout import MDBoxLayout as BoxLayout
 from kivy.graphics import *
 from kivy.core.window import Window
 from kivy.properties import *
@@ -352,8 +349,6 @@ class SolvePage(FloatLayout):
 			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]))
 		self.add_widget(self.againButton)
 		self.againButton.bind(on_press=self.goAgain)
-		# self.imgWidget = Image(source="temp_img.png")
-		# self.add_widget(self.rect)
 		self.imgPath = "not set"
 
 	def goAgain(self, *args):
