@@ -88,7 +88,7 @@ Builder.load_string("""
 
     canvas:
         Color:
-            rgba: 1, 1, 1, 1 if self.selected else 0
+            rgba: .5, .5, 5, 1 if self.selected else 0
         BorderImage:
             border: 8, 8, 8, 8
             pos: root.pos
@@ -111,7 +111,7 @@ Builder.load_string("""
 
         text: ctx.controller()._gen_label(ctx)
         font_size: '11sp'
-        color: .8, .8, .8, 1
+        color: .0, .0, .0, 1
         size: ctx.controller().thumbsize, '16sp'
         pos: root.center_x - self.width / 2, root.y
         halign: 'center'

@@ -15,6 +15,8 @@ from kivy.graphics.texture import Texture
 from kivy.utils import platform
 from kivy_garden.xcamera import XCamera
 from kivy.garden.filechooserthumbview import FileChooserThumbView
+from kivymd.uix.progressbar import MDProgressBar
+from kivy.clock import Clock
 import time
 import numpy as np
 import image_to_numpy
@@ -296,7 +298,7 @@ class WordsPage(FloatLayout):
 		del self.wordsWidgets[wordIndex]
 
 	def continueToSolve(self, *args):
-		self.caller.pages["Solver"].solve(self.img, self.words, self.cropPos)
+		Clock.schedule_once(lambda *_:self.caller.pages["Solver"].solve(self.img, self.words, self.cropPos))
 		self.caller.goToPage("Solver")
 
 	def getSet(self):
@@ -336,6 +338,39 @@ class SolvePage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 
+		self.loader = MDProgressBar()
+		self.loader.pos_hint = {"center_x":0.5, "center_y":0.55}
+		self.add_widget(self.loader)
+
+		self.message = Label(text = "Loading")
+		self.message.pos_hint = {"center_x":0.5, "center_y":0.4}
+		self.add_widget(self.message)
+
+	def setLoadInfo(self, value, message):
+		print("Old", self.loader.value, "	New", (self.loader.value+value))
+		self.loader.value += value
+		self.message.text = message
+
+	def solve(self, imgPath, lookWords, pos):
+		print("solve looking for", lookWords, "in", imgPath, "at", pos)
+		self.setLoadInfo(0, "Loading Image")
+		self.imgPath = imgPath
+		self.img = ImageProcessing.loadImg(self.imgPath)
+		grid, gridPlus = ImageProcessing.processImage(self.img, pos, debug = False, progressCallback = self.setLoadInfo)
+		self.setLoadInfo(10, "Finding Words")
+		foundWords = Solvers.wordSearch(grid, lookWords)
+		self.setLoadInfo(10, "Annotating Image")
+		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
+		# cv2.imwrite("./result.png", outImg)
+		self.caller.pages["Final"].setImageBuf(outImg)
+		self.caller.goToPage("Final")
+
+### 6 ###
+class FinalPage(FloatLayout):
+	def __init__(self, caller, **kwargs):
+		self.caller = caller
+		super().__init__(**kwargs)
+
 		self.againButton = MDRaisedButton(text="Again", pos=(Window.size[0]*0.01, Window.size[1]*0.01), size_hint=(0.1, 0.1))
 
 		with self.canvas:
@@ -356,16 +391,6 @@ class SolvePage(FloatLayout):
 		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
 		self.rect.texture = self.imgTex
-
-	def solve(self, imgPath, lookWords, pos):
-		print("solve looking for", lookWords, "in", imgPath, "at", pos)
-		self.imgPath = imgPath
-		self.img = ImageProcessing.loadImg(self.imgPath)
-		grid, gridPlus = ImageProcessing.processImage(self.img, pos, False)
-		foundWords = Solvers.wordSearch(grid, lookWords)
-		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
-		# cv2.imwrite("./result.png", outImg)
-		self.setImageBuf(outImg)
 		
 class SolverApp(App):
 	def addPage(self, name, pageClass):
@@ -390,6 +415,8 @@ class SolverApp(App):
 		self.addPage("Words", WordsPage)
 
 		self.addPage("Solver", SolvePage)
+
+		self.addPage("Final", FinalPage)
 
 		return self.screen_manager
 
