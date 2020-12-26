@@ -8,6 +8,7 @@ from kivymd.uix.textfield import MDTextField as TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.scatter import Scatter
 from kivymd.uix.boxlayout import MDBoxLayout as BoxLayout
+from kivymd.uix.relativelayout import MDRelativeLayout as RelativeLayout
 from kivy.graphics import *
 from kivy.core.window import Window
 from kivy.properties import *
@@ -288,7 +289,7 @@ class WordsPage(FloatLayout):
 			self.words.append(self.textinput.text)
 			self.textinput.text = ""
 
-			self.wordsWidgets.append(WordWidget(text = self.words[-1], caller = self))
+			self.wordsWidgets.append(WordWidget(text = self.words[-1], caller = self, appCaller = self.caller))
 			self.wordsLayout.add_widget(self.wordsWidgets[-1])
 
 	def removeWord(self, wordName):
@@ -315,16 +316,20 @@ class WordsPage(FloatLayout):
 		else:
 			return True
 
-class WordWidget(BoxLayout):
-	def __init__(self, text, caller, **kwargs):
+class WordWidget(RelativeLayout):
+	def __init__(self, text, caller, appCaller, **kwargs):
+		self.radius = [25, ]
+		# self.md_bg_color = appCaller.theme_cls.primary_color
+		# icons: "delete" "delete-circle" "delete-forever" close" "close-circle" "close-cricle-outline"
 		self.caller = caller
 		super().__init__(**kwargs)
-		self.cols = 2
 		self.textLabel = Label(text=text)
 		self.add_widget(self.textLabel)
 
-		self.removeButton = MDRaisedButton(text="x", size_hint_max_x=50)
-		# self.removeButton.size_hint = (0.2, 0.2)
+		self.removeButton = MDRaisedButton(text="x")
+		self.removeButton.size_hint = (0.2, 0.2)
+		self.removeButton.pos_hint = {"x":0.1, "center_y":0}
+		print(self.removeButton.pos)
 		self.removeButton.bind(on_press=self.remove)
 		self.add_widget(self.removeButton)
 		# self.size_hint_max_y = 0.02
@@ -361,7 +366,7 @@ class SolvePage(FloatLayout):
 		foundWords = Solvers.wordSearch(grid, lookWords)
 		self.setLoadInfo(10, "Annotating Image")
 		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
-		# cv2.imwrite("./result.png", outImg)
+
 		self.caller.pages["Final"].setImageBuf(outImg)
 		self.caller.goToPage("Final")
 
@@ -383,6 +388,7 @@ class FinalPage(FloatLayout):
 		self.caller.goToPage("Start")
 
 	def setImageBuf(self, img):
+		print("final page image set ", type(img), img.shape)
 		self.imgNp = np.flip(img, 0)
 		# takes a numpy image
 		# turn numpy array into buffer
@@ -390,7 +396,12 @@ class FinalPage(FloatLayout):
 		# then into kivy texture
 		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
-		self.rect.texture = self.imgTex
+
+		self.canvas.clear()
+		self.remove_widget(self.againButton)
+		with self.canvas:
+			self.rect = Rectangle(pos = (0, 0), size = (Window.size[0], Window.size[1]), colorfmt="rgb", texture = self.imgTex)
+		self.add_widget(self.againButton)
 		
 class SolverApp(App):
 	def addPage(self, name, pageClass):

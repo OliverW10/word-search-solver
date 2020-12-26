@@ -169,10 +169,6 @@ class ImageProcessing:
 		YsortedLetters = sorted(lettersPlus, key = lambda x:x[1][1])
 		for row in range(gridSize):
 			rowLettersPlus = sorted( YsortedLetters[row*gridSize : (row+1)*gridSize] , key = lambda x:x[1][0] )
-			if len(rowLettersPlus) < gridSize:
-				print("row to short")
-				print(["a", [0.01, 0.01, 0.01, 0.01]]*(gridSize-len(rowLettersPlus)))
-				rowLettersPlus.append(["a", [0.01, 0.01, 0.01, 0.01]]*(gridSize-len(rowLettersPlus)))
 			rowLetters = [letter[0] for letter in rowLettersPlus]
 			print(rowLetters)
 			grid.append(rowLetters)
