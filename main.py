@@ -18,6 +18,7 @@ from kivy_garden.xcamera import XCamera
 from kivy.garden.filechooserthumbview import FileChooserThumbView
 from kivymd.uix.progressbar import MDProgressBar
 from kivy.clock import Clock
+from kivymd.uix.button import MDIconButton
 import time
 import numpy as np
 import image_to_numpy
@@ -49,13 +50,13 @@ class StartPage(FloatLayout):
 		self.loadButton = MDRaisedButton(text="Load File")
 		self.loadButton.size_hint = (0.9, 0.4)
 		self.loadButton.pos_hint = {"x":0.05, "y":0.05}
-		self.loadButton.bind(on_press = self.loadImage)
+		self.loadButton.bind(on_release = self.loadImage)
 		self.add_widget(self.loadButton)
 
 		self.cameraButton = MDRaisedButton(text = "Camera (WIP)")
 		self.cameraButton.size_hint = (0.9, 0.4)
 		self.cameraButton.pos_hint = {"x":0.05, "y":0.5}
-		self.cameraButton.bind(on_press = self.launchCamera)
+		self.cameraButton.bind(on_release = self.launchCamera)
 		self.add_widget(self.cameraButton)
 
 		# self.add_widget(self.buttons)
@@ -127,8 +128,8 @@ class LineUpPage(FloatLayout):
 
 		self.continueButton = MDRaisedButton(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.add_widget(self.continueButton)
-		self.continueButton.bind(on_press = self.continued)
-		self.on_touch_down = self.buttonTouchCheck
+		self.continueButton.bind(on_release = self.continued)
+		self.on_touch_up = self.buttonTouchCheck
 
 		self.squareMargin = 0.1
 		self.createImgTexture()
@@ -143,7 +144,7 @@ class LineUpPage(FloatLayout):
 		if self.continueButton.collide_point(*touch.pos):
 			self.continued()
 		else:	
-			return self.movingLayout.on_touch_down(touch)
+			return self.movingLayout.on_touch_up(touch)
 
 	def setImage(self, img, camera = False):
 		print("path given: ",img)
@@ -267,7 +268,7 @@ class WordsPage(FloatLayout):
 		self.add_widget(self.textinput)
 
 		self.addButton = MDRaisedButton(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
-		self.addButton.bind(on_press = self.addWord)
+		self.addButton.bind(on_release = self.addWord)
 		self.add_widget(self.addButton)
 
 		self.words = []
@@ -279,7 +280,7 @@ class WordsPage(FloatLayout):
 
 		self.continueButton = MDRaisedButton(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
 		self.add_widget(self.continueButton)
-		self.continueButton.bind(on_press = self.continueToSolve)
+		self.continueButton.bind(on_release = self.continueToSolve)
 
 		self.img = "not set yet"
 		self.cropPos = "not set yet"
@@ -318,7 +319,7 @@ class WordsPage(FloatLayout):
 
 class WordWidget(RelativeLayout):
 	def __init__(self, text, caller, appCaller, **kwargs):
-		self.radius = [25, ]
+		# self.radius = [25, ]
 		# self.md_bg_color = appCaller.theme_cls.primary_color
 		# icons: "delete" "delete-circle" "delete-forever" close" "close-circle" "close-cricle-outline"
 		self.caller = caller
@@ -326,13 +327,14 @@ class WordWidget(RelativeLayout):
 		self.textLabel = Label(text=text)
 		self.add_widget(self.textLabel)
 
-		self.removeButton = MDRaisedButton(text="x")
-		self.removeButton.size_hint = (0.2, 0.2)
-		self.removeButton.pos_hint = {"x":0.1, "center_y":0}
+		self.removeButton = MDIconButton(icon="delete")
+		self.removeButton.user_font_size = "32sp"
+		self.removeButton.theme_text_color = "Custom"
+		self.removeButton.text_color = appCaller.theme_cls.primary_color
+		self.removeButton.pos_hint = {"center_x":0.4, "center_y":0.5}
 		print(self.removeButton.pos)
-		self.removeButton.bind(on_press=self.remove)
+		self.removeButton.bind(on_release=self.remove)
 		self.add_widget(self.removeButton)
-		# self.size_hint_max_y = 0.02
 
 	def remove(self, *args):
 		self.caller.removeWord(self.textLabel.text)
@@ -381,7 +383,7 @@ class FinalPage(FloatLayout):
 		with self.canvas:
 			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]))
 		self.add_widget(self.againButton)
-		self.againButton.bind(on_press=self.goAgain)
+		self.againButton.bind(on_release=self.goAgain)
 		self.imgPath = "not set"
 
 	def goAgain(self, *args):
