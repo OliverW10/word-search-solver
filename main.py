@@ -15,13 +15,14 @@ from kivy.properties import *
 from kivy.graphics.texture import Texture
 from kivy.utils import platform
 from kivy_garden.xcamera import XCamera
-from kivy.garden.filechooserthumbview import FileChooserThumbView
 from kivymd.uix.progressbar import MDProgressBar
 from kivy.clock import Clock
 from kivymd.uix.button import MDIconButton
+from kivymd.uix.filemanager import MDFileManager
 import time
 import numpy as np
 import image_to_numpy
+from os.path import isfile
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -75,20 +76,33 @@ class LoadPage(GridLayout):
 		print("caller goToPage", type(self.caller.goToPage))
 		super().__init__(**kwargs)
 		self.cols = 1
-		self.file_thing = FileChooserThumbView(showthumbs=0)
-		self.file_thing.bind(on_submit=self.choseFile)
+		self.file_thing = MDFileManager(preview=True)
+		self.file_thing.bind(select_path=self.select_path)
+		self.file_thing.select_dir_or_file=self.select_path
+		# self.file_thing.select_directory_on_press_button=self.select_path
 		if platform == "android":
 			from os.path import join
 			print("primary_external_storage_path : ", join(primary_external_storage_path(), "DCIM"))
-			self.file_thing.path = join(primary_external_storage_path(), "DCIM")
+			self.path = join(primary_external_storage_path(), "DCIM")
 		else:
-			self.file_thing.path =  "./tests/fulls"
-		self.add_widget(self.file_thing)
+			self.path =  "/home/olikat/word-search-solver/tests/fulls"
+		# self.add_widget(self.file_thing)
 
-	def choseFile(self, x, *args):
-		self.caller.pages["LineUp"].setImage(x.selection[0], camera = False)
-		self.caller.goToPage("LineUp")
-		# print("chosen file: ", x.path, x.selection)
+	def select_path(self, path, *args):
+		if isfile(path):
+			print("thing selected", path)
+			self.file_thing.close()
+
+			self.caller.pages["LineUp"].setImage(path, camera = False)
+			self.caller.goToPage("LineUp")
+		else:
+			print("non file selected", path)
+
+	def stopped(self):
+		self.file_thing.close()
+
+	def started(self):
+		self.file_thing.show(self.path)
 
 ### step 2, camera ###
 class CameraPage(FloatLayout):
@@ -97,6 +111,7 @@ class CameraPage(FloatLayout):
 		super().__init__(**kwargs)
 
 		self.camera = XCamera(on_picture_taken = self.picture_taken)
+		self.camera.play = False
 		self.add_widget(self.camera)
 
 		self.title = Label(text="Try to get the grid flat and square-on")
@@ -107,6 +122,12 @@ class CameraPage(FloatLayout):
 		self.caller.pages["LineUp"].setImage(filename, camera = True)
 		print('Picture taken and saved to {}'.format(filename))
 		self.caller.goToPage("LineUp")
+
+	def started(self):
+		self.camera.play = True
+
+	def stopped(self):
+		self.camera.play = False
 
 def scaleNumber(n, x1, x2, y1, y2):
 	range1 = x2-x1
@@ -437,6 +458,16 @@ class SolverApp(App):
 		print(f"going to {name} page")
 		self.lastPages.append(self.screen_manager.current)
 		self.screen_manager.current = name
+
+		try:
+			self.pages[self.lastPages[-1]].stopped()
+		except AttributeError:
+			print("no start function")
+
+		try:
+			self.pages[name].started()
+		except AttributeError:
+			print("no end function")
 
 	def backPage(self):
 		if len(self.lastPages) >= 1:
