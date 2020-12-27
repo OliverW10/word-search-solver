@@ -21,14 +21,15 @@ class ImageProcessing:
 	def loadImg(fileName):
 		return image_to_numpy.load_image_file(fileName)
 
-	def processImage(img, pos, debug = False):
+	def processImage(img, pos, debug = False, progressCallback = lambda x:x):
+		progressCallback(10, "Pre-processing")
 		croppedImg = ImageProcessing.cropToRect(img, pos=pos)
 		smallImg = cv2.resize(croppedImg, None, fx = ImageProcessing.shrinkRatio, fy = ImageProcessing.shrinkRatio)
 		newImg = ImageProcessing.preProcessImg(smallImg, debug = debug)
 		# cv2.imshow("cropped image", smallImg)
 		# cv2.waitKey()
 		# cv2.destroyAllWindows()
-		grid, letters = ImageProcessing.findLetters(newImg, debug)
+		grid, letters = ImageProcessing.findLetters(newImg, debug, callback = progressCallback)
 
 		return grid, letters
 
@@ -62,7 +63,8 @@ class ImageProcessing:
 			timeCheckpoints.append(["finished preProcessImg", time.time()])
 		return img
 
-	def findLetters(img, debug = False):
+	def findLetters(img, debug = False, callback = lambda x:x):
+		callback(10, "Finding Possible Letters")
 		if debug:
 			timeCheckpoints.append(["got to findLetters", time.time()])
 		if debug:
@@ -83,6 +85,7 @@ class ImageProcessing:
 
 		if debug:
 			timeCheckpoints.append(["found contours", time.time()])
+		callback(10, "Removing False Positives 1/2")
 		# go through every contour and get the section of img around it
 		# done first so that they can be keras'ed as a batch
 		letterImgs = np.empty([len(lettersContours), 32, 32])
@@ -119,7 +122,7 @@ class ImageProcessing:
 		# print("average cnt size: ", avgSize)
 		if debug:
 			timeCheckpoints.append(["finished boxing contours", time.time()])
-
+		callback(10, "Removing False Positives 2/2")
 		# find any overlaps between letterContours and remove the one whose size is furthest from the average
 		for i1, rect1 in enumerate(letterPositions):
 			for i2, rect2 in enumerate(letterPositions):
@@ -135,11 +138,11 @@ class ImageProcessing:
 
 		if debug:
 			timeCheckpoints.append(["finished box check", time.time()])
+		callback(10, "Classifiying letters")
 		# get the letter for each contour and its confidence
 		letters, neighbours = ImageProcessing.letReader.readLetters(letterImgs)
 		if debug:
 			timeCheckpoints.append(["finished letter classification", time.time()])
-
 		# combine the letters, their positions and the confidence and removes all badCnts
 		lettersPlus = []
 		for i in range(len(letters)):
@@ -155,11 +158,11 @@ class ImageProcessing:
 				# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0.5, 2, cv2.LINE_AA) 
 
 		# use the among of found contuors to determin the size of the grid
-		# print("letters num before: ", len(letterPositions))
-		# print("letters num after: ", len(lettersPlus))
+		print("letters num before: ", len(letterPositions))
+		print("letters num after: ", len(lettersPlus))
 		gridSize = round(len(lettersPlus) ** 0.5)
-		# print("\ngridSize: ", gridSize)
-
+		print("\ngridSize: ", gridSize)
+		callback(10, "Forming Grid")
 		# position all letters in grid
 		grid = []
 		gridPlus = []

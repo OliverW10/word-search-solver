@@ -1,28 +1,14 @@
-# import logging
-# logging.getLogger("kivy").setLevel(logging.ERROR)
-# logging.getLogger("keras").setLevel(logging.ERROR)
-# import os
-# import sys
-# sys.stderr = open('output.txt', 'w')
-# sys.stdout = sys.stderr
-# 
-# from kivy.logger import LoggerHistory
-# print('\n'.join([str(l) for l in LoggerHistory.history]))
-# os.environ["KIVY_NO_CONSOLELOG"] = "1"
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import kivy
-from kivy.app import App
-from kivy.uix.label import Label
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
+from kivymd.app import MDApp as App
+from kivymd.uix.label import MDLabel as Label
+from kivymd.uix.gridlayout import MDGridLayout as GridLayout
+from kivymd.uix.floatlayout import MDFloatLayout as FloatLayout
+from kivymd.uix.button import MDRectangleFlatButton, MDRaisedButton
+from kivymd.uix.textfield import MDTextField as TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.uix.camera import Camera
-from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.relativelayout import RelativeLayout
+from kivymd.uix.boxlayout import MDBoxLayout as BoxLayout
+from kivymd.uix.relativelayout import MDRelativeLayout as RelativeLayout
 from kivy.graphics import *
 from kivy.core.window import Window
 from kivy.properties import *
@@ -30,6 +16,9 @@ from kivy.graphics.texture import Texture
 from kivy.utils import platform
 from kivy_garden.xcamera import XCamera
 from kivy.garden.filechooserthumbview import FileChooserThumbView
+from kivymd.uix.progressbar import MDProgressBar
+from kivy.clock import Clock
+from kivymd.uix.button import MDIconButton
 import time
 import numpy as np
 import image_to_numpy
@@ -44,28 +33,33 @@ if platform == "android":
 	request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE, Permission.CAMERA])
 
 ### step 1 ###
-class StartPage(GridLayout):
+class StartPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
-		self.cols = 1
 
 		self.title = Label(text = "Find-a-word Solver")
-		self.title.size_hint = (1, 0.2)
+		self.title.size_hint = (1, 0.1)
+		self.title.pos_hint = {"center_x":0.5, "y":0.9}
+		self.title.halign = "center"
 		self.add_widget(self.title)
 
-		self.buttons = GridLayout()
+		self.buttons = FloatLayout(adaptive_size=True)
 		self.buttons.cols = 2
 
-		self.loadButton = Button(text="Load File")
-		self.loadButton.bind(on_press = self.loadImage)
-		self.buttons.add_widget(self.loadButton)
+		self.loadButton = MDRaisedButton(text="Load File")
+		self.loadButton.size_hint = (0.9, 0.4)
+		self.loadButton.pos_hint = {"x":0.05, "y":0.05}
+		self.loadButton.bind(on_release = self.loadImage)
+		self.add_widget(self.loadButton)
 
-		self.cameraButton = Button(text = "Camera (WIP)")
-		self.cameraButton.bind(on_press = self.launchCamera)
-		self.buttons.add_widget(self.cameraButton)
+		self.cameraButton = MDRaisedButton(text = "Camera (WIP)")
+		self.cameraButton.size_hint = (0.9, 0.4)
+		self.cameraButton.pos_hint = {"x":0.05, "y":0.5}
+		self.cameraButton.bind(on_release = self.launchCamera)
+		self.add_widget(self.cameraButton)
 
-		self.add_widget(self.buttons)
+		# self.add_widget(self.buttons)
 
 	def loadImage(self, instance):
 		self.title.text = "test"
@@ -132,10 +126,10 @@ class LineUpPage(FloatLayout):
 		self.movingLayout.do_rotation = False
 		self.add_widget(self.movingLayout)
 
-		self.continueButton = Button(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.continueButton = MDRaisedButton(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
 		self.add_widget(self.continueButton)
-		self.continueButton.bind(on_press = self.continued)
-		self.on_touch_down = self.buttonTouchCheck
+		self.continueButton.bind(on_release = self.continued)
+		self.on_touch_up = self.buttonTouchCheck
 
 		self.squareMargin = 0.1
 		self.createImgTexture()
@@ -150,7 +144,7 @@ class LineUpPage(FloatLayout):
 		if self.continueButton.collide_point(*touch.pos):
 			self.continued()
 		else:	
-			return self.movingLayout.on_touch_down(touch)
+			return self.movingLayout.on_touch_up(touch)
 
 	def setImage(self, img, camera = False):
 		print("path given: ",img)
@@ -273,8 +267,8 @@ class WordsPage(FloatLayout):
 		self.textinput.bind(on_text_validate=self.addWord)
 		self.add_widget(self.textinput)
 
-		self.addButton = Button(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
-		self.addButton.bind(on_press = self.addWord)
+		self.addButton = MDRaisedButton(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.addButton.bind(on_release = self.addWord)
 		self.add_widget(self.addButton)
 
 		self.words = []
@@ -284,9 +278,9 @@ class WordsPage(FloatLayout):
 
 		self.add_widget(self.wordsLayout)
 
-		self.continueButton = Button(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
+		self.continueButton = MDRaisedButton(text="Continue", pos_hint = {"x":0.89, "y":0.01}, size_hint = (0.1, 0.1))
 		self.add_widget(self.continueButton)
-		self.continueButton.bind(on_press = self.continueToSolve)
+		self.continueButton.bind(on_release = self.continueToSolve)
 
 		self.img = "not set yet"
 		self.cropPos = "not set yet"
@@ -296,7 +290,7 @@ class WordsPage(FloatLayout):
 			self.words.append(self.textinput.text)
 			self.textinput.text = ""
 
-			self.wordsWidgets.append(WordWidget(text = self.words[-1], caller = self))
+			self.wordsWidgets.append(WordWidget(text = self.words[-1], caller = self, appCaller = self.caller))
 			self.wordsLayout.add_widget(self.wordsWidgets[-1])
 
 	def removeWord(self, wordName):
@@ -306,7 +300,7 @@ class WordsPage(FloatLayout):
 		del self.wordsWidgets[wordIndex]
 
 	def continueToSolve(self, *args):
-		self.caller.pages["Solver"].solve(self.img, self.words, self.cropPos)
+		Clock.schedule_once(lambda *_:self.caller.pages["Solver"].solve(self.img, self.words, self.cropPos))
 		self.caller.goToPage("Solver")
 
 	def getSet(self):
@@ -323,19 +317,24 @@ class WordsPage(FloatLayout):
 		else:
 			return True
 
-class WordWidget(BoxLayout):
-	def __init__(self, text, caller, **kwargs):
+class WordWidget(RelativeLayout):
+	def __init__(self, text, caller, appCaller, **kwargs):
+		# self.radius = [25, ]
+		# self.md_bg_color = appCaller.theme_cls.primary_color
+		# icons: "delete" "delete-circle" "delete-forever" close" "close-circle" "close-cricle-outline"
 		self.caller = caller
 		super().__init__(**kwargs)
-		self.cols = 2
 		self.textLabel = Label(text=text)
 		self.add_widget(self.textLabel)
 
-		self.removeButton = Button(text="x", size_hint_max_x=50)
-		# self.removeButton.size_hint = (0.2, 0.2)
-		self.removeButton.bind(on_press=self.remove)
+		self.removeButton = MDIconButton(icon="delete")
+		self.removeButton.user_font_size = "32sp"
+		self.removeButton.theme_text_color = "Custom"
+		self.removeButton.text_color = appCaller.theme_cls.primary_color
+		self.removeButton.pos_hint = {"center_x":0.4, "center_y":0.5}
+		print(self.removeButton.pos)
+		self.removeButton.bind(on_release=self.remove)
 		self.add_widget(self.removeButton)
-		# self.size_hint_max_y = 0.02
 
 	def remove(self, *args):
 		self.caller.removeWord(self.textLabel.text)
@@ -346,20 +345,52 @@ class SolvePage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 
-		self.againButton = Button(text="Again", pos=(Window.size[0]*0.01, Window.size[1]*0.01), size_hint=(0.1, 0.1))
+		self.loader = MDProgressBar()
+		self.loader.pos_hint = {"center_x":0.5, "center_y":0.55}
+		self.add_widget(self.loader)
+
+		self.message = Label(text = "Loading")
+		self.message.pos_hint = {"center_x":0.5, "center_y":0.4}
+		self.add_widget(self.message)
+
+	def setLoadInfo(self, value, message):
+		print("Old", self.loader.value, "	New", (self.loader.value+value))
+		self.loader.value += value
+		self.message.text = message
+
+	def solve(self, imgPath, lookWords, pos):
+		print("solve looking for", lookWords, "in", imgPath, "at", pos)
+		self.setLoadInfo(0, "Loading Image")
+		self.imgPath = imgPath
+		self.img = ImageProcessing.loadImg(self.imgPath)
+		grid, gridPlus = ImageProcessing.processImage(self.img, pos, debug = False, progressCallback = self.setLoadInfo)
+		self.setLoadInfo(10, "Finding Words")
+		foundWords = Solvers.wordSearch(grid, lookWords)
+		self.setLoadInfo(10, "Annotating Image")
+		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
+
+		self.caller.pages["Final"].setImageBuf(outImg)
+		self.caller.goToPage("Final")
+
+### 6 ###
+class FinalPage(FloatLayout):
+	def __init__(self, caller, **kwargs):
+		self.caller = caller
+		super().__init__(**kwargs)
+
+		self.againButton = MDRaisedButton(text="Again", pos=(Window.size[0]*0.01, Window.size[1]*0.01), size_hint=(0.1, 0.1))
 
 		with self.canvas:
 			self.rect = Rectangle(pos = (0, 0), size=(Window.size[0], Window.size[1]))
 		self.add_widget(self.againButton)
-		self.againButton.bind(on_press=self.goAgain)
-		# self.imgWidget = Image(source="temp_img.png")
-		# self.add_widget(self.rect)
+		self.againButton.bind(on_release=self.goAgain)
 		self.imgPath = "not set"
 
 	def goAgain(self, *args):
 		self.caller.goToPage("Start")
 
 	def setImageBuf(self, img):
+		print("final page image set ", type(img), img.shape)
 		self.imgNp = np.flip(img, 0)
 		# takes a numpy image
 		# turn numpy array into buffer
@@ -367,17 +398,12 @@ class SolvePage(FloatLayout):
 		# then into kivy texture
 		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
-		self.rect.texture = self.imgTex
 
-	def solve(self, imgPath, lookWords, pos):
-		print("solve looking for", lookWords, "in", imgPath, "at", pos)
-		self.imgPath = imgPath
-		self.img = ImageProcessing.loadImg(self.imgPath)
-		grid, gridPlus = ImageProcessing.processImage(self.img, pos, False)
-		foundWords = Solvers.wordSearch(grid, lookWords)
-		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
-		# cv2.imwrite("./result.png", outImg)
-		self.setImageBuf(outImg)
+		self.canvas.clear()
+		self.remove_widget(self.againButton)
+		with self.canvas:
+			self.rect = Rectangle(pos = (0, 0), size = (Window.size[0], Window.size[1]), colorfmt="rgb", texture = self.imgTex)
+		self.add_widget(self.againButton)
 		
 class SolverApp(App):
 	def addPage(self, name, pageClass):
@@ -403,6 +429,8 @@ class SolverApp(App):
 
 		self.addPage("Solver", SolvePage)
 
+		self.addPage("Final", FinalPage)
+
 		return self.screen_manager
 
 	def goToPage(self, name):
@@ -421,7 +449,7 @@ class TestApp(App):
 		self.layout = BoxLayout()
 		self.layout.cols = 2
 		self.thing = Label(text="test label")
-		self.testButton = Button(text="test button")
+		self.testButton = MDRaisedButton(text="test button")
 		self.layout.add_widget(self.thing)
 		self.layout.add_widget(self.testButton)
 		return self.layout
