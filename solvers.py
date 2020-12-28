@@ -7,20 +7,7 @@ import time
 # use pytesseract for ocr https://pypi.org/project/pytesseract/
 
 class Solvers:
-	allWords = ["hello", "test", "python", "app"] # should be dataset of all words
-	def wordSearch1(grid, words):
-		# idea 1: create strings of all the vertical and horizontal and just use 'if word in string'
-
-		lines = []
-		for i in range(len(grid)): # add all 
-			lines.append([item[i] for item in grid])
-		print(lines)
-
-		for n, word in enumerate(words):
-			print(word, n)
-
-
-	def wordSearch2(grid, words):
+	def wordSearchMain(grid, words): # seaerches a single grid for the words
 		# loop through grid looking for first letter of word, then around that for second and on
 
 		# make all letters lowercase
@@ -65,7 +52,7 @@ class Solvers:
 					poss.append([x, y])
 		return poss
 
-	def wordSearch(grid, words, algo = 2):
+	def wordSearch(grid, words, gridPossibilities = False):
 		if algo == 1:
 			return Solvers.wordSearch1(grid, words)
 		if algo == 2:

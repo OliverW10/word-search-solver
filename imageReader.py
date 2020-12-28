@@ -29,9 +29,9 @@ class ImageProcessing:
 		# cv2.imshow("cropped image", smallImg)
 		# cv2.waitKey()
 		# cv2.destroyAllWindows()
-		grid, letters = ImageProcessing.findLetters(newImg, debug, callback = progressCallback)
+		grid, letters, allGrids = ImageProcessing.findLetters(newImg, debug, callback = progressCallback)
 
-		return grid, letters
+		return grid, letters, allGrids
 
 	def boxOverlap(box1, box2):
 		# finds the total area of overlap between two rects (x, y, w, h)
@@ -147,7 +147,7 @@ class ImageProcessing:
 		lettersPlus = []
 		for i in range(len(letters)):
 			if not i in badCnts:
-				lettersPlus.append( (string.ascii_letters[int(letters[i])], letterPositions[i]) )
+				lettersPlus.append( (string.ascii_letters[int(letters[i])], letterPositions[i], int(letters[i]), neighbours[i]) )
 				if debug:
 					xI, yI, wI, hI = letterPositions[i]
 					x, y, w, h = xI*img.shape[1], yI*img.shape[0], wI*img.shape[1], hI*img.shape[0]
@@ -166,18 +166,26 @@ class ImageProcessing:
 		# position all letters in grid
 		grid = []
 		gridPlus = []
+		gridPossibilities = []
 		YsortedLetters = sorted(lettersPlus, key = lambda x:x[1][1])
 		for row in range(gridSize):
 			rowLettersPlus = sorted( YsortedLetters[row*gridSize : (row+1)*gridSize] , key = lambda x:x[1][0] )
 			rowLetters = [letter[0] for letter in rowLettersPlus]
+			rowPossibilities = [letter[3] for letter in rowLettersPlus]
 			print(rowLetters)
 			grid.append(rowLetters)
 			gridPlus.append(rowLettersPlus)
-			# del YsortedLetters[row*gridSize : (row+1)*gridSize]
+			gridPossibilities.append(rowPossibilities)
 		if debug:
 			timeCheckpoints.append(["organised letters into grid", time.time()])
 
-		return grid, gridPlus
+		return grid, gridPlus, gridPossibilities
+
+	def makeGridFull(grid, gridPlus, gridPossibilities):
+		gridSize = len(grid[0])
+		emptySquare = (" ", [0, 0, 0, 0], 27, [27]*len(gridPlus[0][0][-1]))
+		for i in range(gridSize):
+			
 
 	def cropToRect(img, **kwargs):
 		if "pos" in kwargs:
@@ -255,10 +263,10 @@ if __name__ == "__main__":
 			imageNames.append(i)
 
 	checkpointAverages = []
-	for i in range(5):
+	for i in range(len(imageNames)):
 		img = cv2.imread("tests/"+imageNames[i]) # "tests/originals/4.png"
 		timeCheckpoints = [["start", time.time()]]
-		grid, letters, img = ImageProcessing.processImage(img, [[0, 0], [1, 0], [1, 1]], True)
+		grid, letters, possibleGrids = ImageProcessing.processImage(img, [[0, 0], [1, 0], [1, 1]], True)
 		
 		for j in range(1, len(timeCheckpoints)):
 			t = timeCheckpoints[j][1]-timeCheckpoints[j-1][1]

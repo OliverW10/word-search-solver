@@ -384,9 +384,9 @@ class SolvePage(FloatLayout):
 		self.setLoadInfo(0, "Loading Image")
 		self.imgPath = imgPath
 		self.img = ImageProcessing.loadImg(self.imgPath)
-		grid, gridPlus = ImageProcessing.processImage(self.img, pos, debug = False, progressCallback = self.setLoadInfo)
+		grid, gridPlus, allGrids = ImageProcessing.processImage(self.img, pos, debug = False, progressCallback = self.setLoadInfo)
 		self.setLoadInfo(10, "Finding Words")
-		foundWords = Solvers.wordSearch(grid, lookWords)
+		foundWords = Solvers.wordSearch(grid, lookWords, gridPossibilities = allGrids)
 		self.setLoadInfo(10, "Annotating Image")
 		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
 

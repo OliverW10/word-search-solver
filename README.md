@@ -11,4 +11,4 @@ TO DO:
  - Check multiple possibilities of the grid if a word is not found based on other near matches from Knn
  - Make Vision Run threaded so the GUI can still work as its running (for loading bar)
  - Make Annotations look nicer
- - Make File Brozer display thumbnails with [this](https://kivymd.readthedocs.io/en/latest/components/image-list/) or [this](https://kivymd.readthedocs.io/en/latest/components/file-manager/)
+ - Fix camera rotation on Android
