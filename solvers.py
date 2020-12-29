@@ -2,17 +2,13 @@ import string
 import random
 import copy
 import time
-
-# use kivy for app, https://kivy.org/#home
-# use pytesseract for ocr https://pypi.org/project/pytesseract/
+import numpy as np
 
 class Solvers:
-	def wordSearchSingle(grid, words): # seaerches a single grid for the words
+	allLetters = string.ascii_letters+" "
+	def wordSearch(grid, words): # seaerches a single grid for the words
 		# loop through grid looking for first letter of word, then around that for second and on
 
-		# make all letters lowercase
-		lowerRow = lambda row:list(map(lambda x:x.lower(), row))
-		grid = list(map(lambda x:lowerRow(x), grid))
 		directions = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [-1, -1], [-1, 1], [0, -1]]
 
 		foundWords = {}
@@ -20,40 +16,44 @@ class Solvers:
 			foundWords[word] = []
 			print(word)
 			firsts = Solvers.findLetter(grid, word[0]) # find where all the first letters are
-			print(firsts)
+			# print(firsts)
 			for pos in firsts:
 				# print(f"\n\n next pos {pos} ")
 				for direction in directions: # for each first letter try each direction
 					# print("\n next dir")
 					stillGoing = True
+					conf = Solvers.hasLetter(grid[pos[0], pos[1]], word[0])
 					for i in range(1, len(word)): # iterate forwards checking if the letter is correct
 						x = pos[0] + direction[0]*i
 						y = pos[1] + direction[1]*i
 						if 0 <= x < len(grid) and 0 <= y < len(grid): # first checks if its inside the grid to prevent out-of-range-ing
-							if grid[x][y] != word[i]:
+							if Solvers.hasLetter(grid[x][y], word[i]) == 0: # checks if the letter is incorrect
 								stillGoing = False
-								# print("wrong letter")
+								break
+							else:
+								conf += Solvers.hasLetter(grid[x][y], word[i]) # means the position is in the grid and has the correct letter
 						else:
 							stillGoing = False
-							# print("out of grid")
+							break
 
 					if stillGoing:
-						# print(f"found word {word} {str([pos, ( pos[0] + direction[0]*len(word), pos[1] + direction[1]*len(word) ) ])}")
-						foundWords[word].append((pos, [ pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ] ))
+						print(f"found word {word} at {str([pos, ( pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ) ])} with {conf} out of {len(word)*grid.shape[2]} matches")
+						foundWords[word].append({"position":(pos, [ pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ] ), "conf":(conf/len(word))/grid.shape[2]})
+		print(f"words not found: {list(word for word in foundWords.keys() if len(foundWords[word])==0)}")
 		return foundWords
 
-	def findLetter(grid, toFind):
-		# helper function for wordSearch2()
-		# returns all positions the letter is at
+	def findLetter(grids, toFind): # takes a grid of numbers and a letter as a string
 		poss = []
-		for x, row in enumerate(grid):
-			for y, letter in enumerate(row):
-				if letter.lower() == toFind.lower():
+		for x, row in enumerate(grids):
+			for y, position in enumerate(row):
+				if Solvers.hasLetter(position, toFind) >= 1: # creates a list of bools of if whether it is toFind
+					# print(f"found letter {toFind} (or {Solvers.allLetters.index(toFind)}) in {position}, {Solvers.hasLetter(position, toFind)} times")
 					poss.append([x, y])
 		return poss
 
-	def wordSearchMulti(grids, words):
-		pass
+	def hasLetter(possibilities, letter):
+		return sum(Solvers.allLetters[letterIdx].lower() == letter.lower() for letterIdx in possibilities)
+
 
 if __name__ == "__main__":
 
@@ -95,7 +95,6 @@ if __name__ == "__main__":
 				usedSpots.append([pos[0] + num*direction[0], pos[1] + num*direction[1]])
 		return grid
 
-
 	testWords = ["test", "hi"]
 
 	testGrid = [["a"]*10 for x in range(10)]# generateWordSearch(100, testWords)
@@ -108,8 +107,17 @@ if __name__ == "__main__":
 		print("")
 	print("\n"*2)
 
+
+	with open("./tests/output/data.npz", "rb") as f:
+		imgData = np.load(f)
+		imgNames = list(imgData.keys())
+		print("image data loaded for ", imgNames)
+		print("shape of image", imgData["20201114_181054.jpg"].shape)
+
+		print("20201114_181054.jpg")
+		print(Solvers.wordSearch(imgData["20201114_181054.jpg"], ["alder", "apple", "ash", "aspen", "birch", "buckthorn", "cedar", "cherry", "chestnut", "chinkapin", "poopy"]))
+
 	# start_time = time.time()
 	# for i in range(1000):
 		# Solvers.wordSearch(testGrid, testWords)
 	# print("time: ", (time.time()-start_time)/1000)
-	print(Solvers.wordSearch(testGrid, testWords))
