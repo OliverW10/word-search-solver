@@ -21,7 +21,7 @@ class ImageProcessing:
 	def loadImg(fileName):
 		return image_to_numpy.load_image_file(fileName)
 
-	def processImage(img, pos, debug = False, progressCallback = lambda x:x):
+	def processImage(img, pos, debug = False, progressCallback = lambda *x:x):
 		progressCallback(10, "Pre-processing")
 		croppedImg = ImageProcessing.cropToRect(img, pos=pos)
 		smallImg = cv2.resize(croppedImg, None, fx = ImageProcessing.shrinkRatio, fy = ImageProcessing.shrinkRatio)
@@ -29,9 +29,9 @@ class ImageProcessing:
 		# cv2.imshow("cropped image", smallImg)
 		# cv2.waitKey()
 		# cv2.destroyAllWindows()
-		grid, letters = ImageProcessing.findLetters(newImg, debug, callback = progressCallback)
+		grid, letters, allGrids = ImageProcessing.findLetters(newImg, debug, callback = progressCallback)
 
-		return grid, letters
+		return ImageProcessing.makeGridFull(grid, letters, allGrids)
 
 	def boxOverlap(box1, box2):
 		# finds the total area of overlap between two rects (x, y, w, h)
@@ -57,7 +57,6 @@ class ImageProcessing:
 		size = img.shape # height first
 		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 		cv2.medianBlur(img, int(int(size[0]*0.003)/2)*2+1, img)
-		print("shape", img.shape)
 		cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, int(int(size[0]*0.075)/2)*2+1, 4, img) # cant do this without first greyscaling
 		if debug:
 			timeCheckpoints.append(["finished preProcessImg", time.time()])
@@ -147,7 +146,7 @@ class ImageProcessing:
 		lettersPlus = []
 		for i in range(len(letters)):
 			if not i in badCnts:
-				lettersPlus.append( (string.ascii_letters[int(letters[i])], letterPositions[i]) )
+				lettersPlus.append( (string.ascii_letters[int(letters[i])], letterPositions[i], int(letters[i]), neighbours[i]) )
 				if debug:
 					xI, yI, wI, hI = letterPositions[i]
 					x, y, w, h = xI*img.shape[1], yI*img.shape[0], wI*img.shape[1], hI*img.shape[0]
@@ -158,26 +157,43 @@ class ImageProcessing:
 				# drawImg = cv2.putText(drawImg, lettersPlus[-1][0], (int(letterPositions[i][0]), int(letterPositions[i][1])), cv2.FONT_HERSHEY_SIMPLEX , 2, 0.5, 2, cv2.LINE_AA) 
 
 		# use the among of found contuors to determin the size of the grid
-		print("letters num before: ", len(letterPositions))
-		print("letters num after: ", len(lettersPlus))
+		# print("letters num before: ", len(letterPositions))
+		# print("letters num after: ", len(lettersPlus))
 		gridSize = round(len(lettersPlus) ** 0.5)
-		print("\ngridSize: ", gridSize)
+		print("gridSize: ", gridSize)
 		callback(10, "Forming Grid")
 		# position all letters in grid
 		grid = []
 		gridPlus = []
+		gridPossibilities = []
 		YsortedLetters = sorted(lettersPlus, key = lambda x:x[1][1])
 		for row in range(gridSize):
 			rowLettersPlus = sorted( YsortedLetters[row*gridSize : (row+1)*gridSize] , key = lambda x:x[1][0] )
 			rowLetters = [letter[0] for letter in rowLettersPlus]
-			print(rowLetters)
+			rowPossibilities = [letter[3] for letter in rowLettersPlus]
+			# print(rowLetters)
 			grid.append(rowLetters)
 			gridPlus.append(rowLettersPlus)
-			# del YsortedLetters[row*gridSize : (row+1)*gridSize]
+			gridPossibilities.append(rowPossibilities)
 		if debug:
 			timeCheckpoints.append(["organised letters into grid", time.time()])
 
-		return grid, gridPlus
+		return grid, gridPlus, gridPossibilities
+
+	def makeGridFull(grid, gridPlus, gridPossibilities):
+		gridSize = len(grid[0])
+		emptySquare = (" ", [0, 0, 0, 0], 53, [53]*len(gridPlus[0][0][-1]))
+		for i in range(gridSize):
+			if i < len(grid):
+				while len(grid[i]) < gridSize:
+					grid[i].append(" ")
+					gridPlus[i].append(emptySquare)
+					gridPossibilities[i].append([27]*len(gridPossibilities[0][0]))
+			else:
+				grid.append([" "]*gridSize)
+				gridPlus.append([emptySquare]*gridSize)
+				gridPossibilities.append([[27]*len(gridPossibilities[0][0])]*gridSize)
+		return grid, gridPlus, gridPossibilities
 
 	def cropToRect(img, **kwargs):
 		if "pos" in kwargs:
@@ -203,46 +219,6 @@ class ImageProcessing:
 		warp_dst = cv2.warpAffine(img, warp_mat, (img.shape[1], img.shape[0]))
 		return warp_dst
 
-	def unCropPos(pos, p1, p2, imgSize):
-		newX = pos[0]*(p2[0]-p1[0])
-		newY = pos[1]*(p2[1]-p1[1])
-		return newX+p1[0], newY+p1[1]
-
-	def annotate(img, gridPlus, cropPos, words): # works in place
-		drawImg = img.copy()
-		# cropPos = ImageProcessing.fixCropPos()
-		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0])) # top left
-		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0])) # bottom right
-		for word in words.keys():
-			if len(words[word]) >= 1:
-				wordPos = words[word][0]
-				print("wordPos",wordPos)
-				letterRects = [ gridPlus[wordPos[0][0]][wordPos[0][1]][1], gridPlus[wordPos[1][0]][wordPos[1][1]][1] ]
-				letterPoints = [ [letterRects[0][0]+letterRects[0][2]/2, letterRects[0][1]+letterRects[0][3]/2] , [letterRects[1][0]+letterRects[1][2]/2, letterRects[1][1]+letterRects[1][3]/2]]
-				print("letter points", letterPoints)
-				linePoints = [ImageProcessing.unCropPos(letterPoints[i], p1, p2, img.shape) for i in range(2)]
-				print("line points", linePoints)
-				pts = np.array(linePoints, np.int32)
-				pts = pts.reshape((-1,1,2))
-				cv2.polylines(drawImg, [pts], False, (0,255,255), int(img.shape[0]/500))
-			else:
-				print(f"word {word} not found")
-		# for l in lettersPlus:
-		# 	x = int(lerp(cropPos[0][0], cropPos[2][0], l[1][0]) * img.shape[1])
-		# 	y = int(lerp(cropPos[0][1], cropPos[2][1], l[1][1]) * img.shape[0])
-		# 	img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
-		# 	# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
-		cv2.rectangle(drawImg, p1, p2, (0, 255, 0), 3)
-		return drawImg
-
-	def drawGrid(grid, size = (800, 800)):
-		img = np.zeros(size)
-		img.fill(255)
-		for i in range(len(grid)):
-			for j in range(len(grid)):
-				cv2.putText(img, grid[j][i], (int(((i+0.5)/len(grid))*size[0]), int(((j+0.5)/len(grid))*size[1])), cv2.FONT_HERSHEY_SIMPLEX, size[0]*0.001, 0)
-		return img
-
 def lerp(a, b, n):
 	return (n * a) + ((1-n) * b)
 
@@ -255,10 +231,12 @@ if __name__ == "__main__":
 			imageNames.append(i)
 
 	checkpointAverages = []
-	for i in range(5):
+	imageOutputs = {}
+	for i in range(len(imageNames)):
+		print(imageNames[i])
 		img = cv2.imread("tests/"+imageNames[i]) # "tests/originals/4.png"
 		timeCheckpoints = [["start", time.time()]]
-		grid, letters, img = ImageProcessing.processImage(img, [[0, 0], [1, 0], [1, 1]], True)
+		grid, letters, possibleGrids = ImageProcessing.processImage(img, [[0, 0], [1, 0], [1, 1]], True, )
 		
 		for j in range(1, len(timeCheckpoints)):
 			t = timeCheckpoints[j][1]-timeCheckpoints[j-1][1]
@@ -266,12 +244,16 @@ if __name__ == "__main__":
 				checkpointAverages.append([timeCheckpoints[j][0], t])
 			else:
 				checkpointAverages[j-1][1] += t
-			print(timeCheckpoints[j][0], t)
-		print("\n")
+			# print(timeCheckpoints[j][0], t)
+		# print("\n")
 
 		cv2.imwrite("results/"+imageNames[i], img)
 		img = cv2.resize(img, None, fx = 0.3, fy = 0.3)
 		
+		temp = np.array(possibleGrids, dtype=np.uint8) # possibleGrids as an np array
+		imageOutputs[imageNames[i]] = temp
+		# print(imageOutputs[imageNames[i]])
+
 		# cv2.imshow("Img", img)
 		# cv2.waitKey(0)
 
@@ -279,6 +261,7 @@ if __name__ == "__main__":
 		# cv2.waitKey(0)
 		# cv2.destroyAllWindows()
 
+	np.savez("tests/output/data.npz", **imageOutputs)
 	for i in range(len(checkpointAverages)):
 		print("avg", checkpointAverages[i][0], checkpointAverages[i][1]/5)
 	print("avg total time", sum(x[1] for x in checkpointAverages)/5)
