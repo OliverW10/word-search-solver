@@ -26,6 +26,7 @@ from os.path import isfile
 
 from solvers import Solvers
 from imageReader import ImageProcessing
+from annotator import Annotator
 
 # kivy.require("2.0")
 if platform == "android":
@@ -386,9 +387,9 @@ class SolvePage(FloatLayout):
 		self.img = ImageProcessing.loadImg(self.imgPath)
 		grid, gridPlus, allGrids = ImageProcessing.processImage(self.img, pos, debug = False, progressCallback = self.setLoadInfo)
 		self.setLoadInfo(10, "Finding Words")
-		foundWords = Solvers.wordSearch(grid, lookWords, gridPossibilities = allGrids)
+		foundWords = Solvers.wordSearch(allGrids, lookWords)
 		self.setLoadInfo(10, "Annotating Image")
-		outImg = ImageProcessing.annotate(self.img, gridPlus, pos, foundWords)
+		outImg = Annotator.annotate(self.img, gridPlus, pos, foundWords)
 
 		self.caller.pages["Final"].setImageBuf(outImg)
 		self.caller.goToPage("Final")

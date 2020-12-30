@@ -14,7 +14,7 @@ class Solvers:
 		foundWords = {}
 		for n, word in enumerate(words):
 			foundWords[word] = []
-			print(word)
+			# print(word)
 			firsts = Solvers.findLetter(grid, word[0]) # find where all the first letters are
 			# print(firsts)
 			for pos in firsts:
@@ -22,7 +22,7 @@ class Solvers:
 				for direction in directions: # for each first letter try each direction
 					# print("\n next dir")
 					stillGoing = True
-					conf = Solvers.hasLetter(grid[pos[0], pos[1]], word[0])
+					conf = Solvers.hasLetter(grid[int(pos[0])][int(pos[1])], word[0])
 					for i in range(1, len(word)): # iterate forwards checking if the letter is correct
 						x = pos[0] + direction[0]*i
 						y = pos[1] + direction[1]*i
@@ -37,9 +37,9 @@ class Solvers:
 							break
 
 					if stillGoing:
-						print(f"found word {word} at {str([pos, ( pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ) ])} with {conf} out of {len(word)*grid.shape[2]} matches")
-						foundWords[word].append({"position":(pos, [ pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ] ), "conf":(conf/len(word))/grid.shape[2]})
-		print(f"words not found: {list(word for word in foundWords.keys() if len(foundWords[word])==0)}")
+						# print(f"found word {word} at {str([pos, ( pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ) ])} with {conf} out of {len(word)*len(grid[0][0])} matches")
+						foundWords[word].append({"position":(pos, [ pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ] ), "conf":(conf/len(word))/len(grid[0][0])})
+		# print(f"words not found: {list(word for word in foundWords.keys() if len(foundWords[word])==0)}")
 		return foundWords
 
 	def findLetter(grids, toFind): # takes a grid of numbers and a letter as a string
@@ -52,7 +52,7 @@ class Solvers:
 		return poss
 
 	def hasLetter(possibilities, letter):
-		return sum(Solvers.allLetters[letterIdx].lower() == letter.lower() for letterIdx in possibilities)
+		return sum(Solvers.allLetters[int(letterIdx)].lower() == letter.lower() for letterIdx in possibilities)
 
 
 if __name__ == "__main__":
