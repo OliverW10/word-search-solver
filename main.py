@@ -28,6 +28,8 @@ from solvers import Solvers
 from imageReader import ImageProcessing
 from annotator import Annotator
 
+import threading
+
 # kivy.require("2.0")
 if platform == "android":
 	print("requested permissions")
@@ -389,16 +391,22 @@ class SolvePage(FloatLayout):
 		self.message.text = message
 
 	def solve(self, imgPath, lookWords, pos):
+		self.thread = threading.Thread(target=SolvePage._solve, args=(imgPath, lookWords, pos, self))
 		print("solve looking for", lookWords, "in", imgPath, "at", pos)
-		self.setLoadInfo(0, "Loading Image")
-		self.imgPath = imgPath
-		self.img = ImageProcessing.loadImg(self.imgPath)
-		grid, gridPlus, allGrids = ImageProcessing.processImage(self.img, pos, debug = False, progressCallback = self.setLoadInfo)
-		self.setLoadInfo(10, "Finding Words")
-		foundWords = Solvers.wordSearch(allGrids, lookWords)
-		self.setLoadInfo(10, "Annotating Image")
-		outImg = Annotator.annotate(self.img, gridPlus, pos, foundWords)
+		x.start()
 
+	def _solve(imgPath, words, pos, pageInst):
+		pageInst.setLoadInfo(0, "Loading Image")
+		pageInst.imgPath = imgPath
+		pageInst.img = ImageProcessing.loadImg(pageInst.imgPath)
+		grid, gridPlus, allGrids = ImageProcessing.processImage(pageInst.img, pos, debug = False, progressCallback = pageInst.setLoadInfo)
+		pageInst.setLoadInfo(10, "Finding Words")
+		foundWords = Solvers.wordSearch(allGrids, lookWords)
+		pageInst.setLoadInfo(10, "Annotating Image")
+		outImg = Annotator.annotate(pageInst.img, gridPlus, pos, foundWords)
+		pageInst.done(outImg)
+
+	def done(self, outImg):
 		self.caller.pages["Final"].setImageBuf(outImg)
 		self.caller.goToPage("Final")
 
