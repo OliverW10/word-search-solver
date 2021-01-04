@@ -12,3 +12,4 @@ TO DO:
  - Make Vision Run threaded so the GUI can still work as its running (for loading bar)
  - Make Annotations look nicer
  - Fix camera rotation on Android
+ - Improve vision accuracy

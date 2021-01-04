@@ -82,8 +82,8 @@ class LoadPage(FloatLayout):
 		self.file_thing.select_path = self.select_path
 		if platform == "android":
 			from os.path import join
-			print("primary_external_storage_path : ", join(primary_external_storage_path(), "DCIM"))
-			self.path = join(primary_external_storage_path(), "DCIM")
+			print("primary_external_storage_path : ", join(primary_external_storage_path(), "DCIM", "Camera"))
+			self.path = join(primary_external_storage_path(), "DCIM", "Camera")
 		else:
 			self.path =  "/home/olikat/word-search-solver/tests/fulls"
 		# self.add_widget(self.file_thing)
@@ -113,24 +113,30 @@ class CameraPage(FloatLayout):
 		self.camera = XCamera(play = True)
 		self.camera.on_picture_taken = self.picture_taken
 		self.add_widget(self.camera)
-		self.camera.force_landscape()
+		if platform == "android":
+			from os.path import join
+			self.camera.directory = join(primary_external_storage_path(), "DCIM", "Camera")
 
 		self.title = Label(text="Try to get the grid flat and square-on")
 		self.title.size_hint = (1, 0.1)
 		self.add_widget(self.title)
 
 	def picture_taken(self, filename):
+		while not isfile(filename):
+			print("waiting for file to save")
+			time.sleep(0.1)
+		self.leave(filename)
+
+	def leave(self, filename):
 		self.caller.pages["LineUp"].setImage(filename, camera = True)
 		print('Picture taken and saved to {}'.format(filename))
 		self.caller.goToPage("LineUp")
 
 	def started(self):
-		# self.camera.play = True
-		pass
+		self.camera.force_landscape()
 
 	def stopped(self):
-		# self.camera.play = False
-		pass
+		self.camera.restore_orientation()
 
 def scaleNumber(n, x1, x2, y1, y2):
 	range1 = x2-x1
