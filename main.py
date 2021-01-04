@@ -19,6 +19,7 @@ from kivymd.uix.progressbar import MDProgressBar
 from kivy.clock import Clock
 from kivymd.uix.button import MDIconButton
 from kivymd.uix.filemanager import MDFileManager
+from kivy.clock import mainthread
 import time
 import numpy as np
 import image_to_numpy
@@ -246,7 +247,7 @@ class LineUpPage(FloatLayout):
 		self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8)
 		self.imgNp = np.flip(self.imgNp, 0)
 		# turn numpy array into buffer
-		self.imgBuf = self.imgNp.tostring()
+		self.imgBuf = self.imgNp.tobytes()
 		# then into kivy texture
 		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
@@ -385,15 +386,19 @@ class SolvePage(FloatLayout):
 		self.message.pos_hint = {"center_x":0.5, "center_y":0.4}
 		self.add_widget(self.message)
 
+	@mainthread
 	def setLoadInfo(self, value, message):
 		print("Old", self.loader.value, "	New", (self.loader.value+value))
 		self.loader.value += value
 		self.message.text = message
 
 	def solve(self, imgPath, lookWords, pos):
+		# call _solve in another thread
+		self.outImg = "not set"
 		self.thread = threading.Thread(target=SolvePage._solve, args=(imgPath, lookWords, pos, self))
 		print("solve looking for", lookWords, "in", imgPath, "at", pos)
-		x.start()
+		self.checkDoneEvent = Clock.schedule_interval(self.checkDone, 1) # checks if _solve is done and goes to next page
+		self.thread.start()
 
 	def _solve(imgPath, words, pos, pageInst):
 		pageInst.setLoadInfo(0, "Loading Image")
@@ -401,14 +406,34 @@ class SolvePage(FloatLayout):
 		pageInst.img = ImageProcessing.loadImg(pageInst.imgPath)
 		grid, gridPlus, allGrids = ImageProcessing.processImage(pageInst.img, pos, debug = False, progressCallback = pageInst.setLoadInfo)
 		pageInst.setLoadInfo(10, "Finding Words")
-		foundWords = Solvers.wordSearch(allGrids, lookWords)
+		foundWords = Solvers.wordSearch(allGrids, words)
 		pageInst.setLoadInfo(10, "Annotating Image")
 		outImg = Annotator.annotate(pageInst.img, gridPlus, pos, foundWords)
-		pageInst.done(outImg)
+		pageInst.setLoadInfo(10, "Done")
+		pageInst.outImg = outImg
 
+	@mainthread
 	def done(self, outImg):
-		self.caller.pages["Final"].setImageBuf(outImg)
+		self.checkDoneEvent.cancel()
+		print("called done")
+		self.thread.join()
+		self.caller.pages["Final"].setImageBuf(self.outImg)
 		self.caller.goToPage("Final")
+
+	@mainthread
+	def checkDone(self, *args):
+		if self.outImg == "not set":
+			return False
+		else:
+			print("outImg has been set")
+			self.done(self.outImg)
+
+	def stopped(self):
+		pass
+		# print("got to stopped")
+		# self.thread.join()
+		# self.done(self.outImg)
+		# print("got past .join")
 
 ### 6 ###
 class FinalPage(FloatLayout):
@@ -432,7 +457,7 @@ class FinalPage(FloatLayout):
 		self.imgNp = np.flip(img, 0)
 		# takes a numpy image
 		# turn numpy array into buffer
-		self.imgBuf = self.imgNp.tostring()
+		self.imgBuf = self.imgNp.tobytes()
 		# then into kivy texture
 		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
