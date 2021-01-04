@@ -8,7 +8,7 @@ from kivymd.uix.textfield import MDTextField as TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.scatter import Scatter
 from kivymd.uix.boxlayout import MDBoxLayout as BoxLayout
-from kivymd.uix.relativelayout import MDRelativeLayout as RelativeLayout
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics import *
 from kivy.core.window import Window
 from kivy.properties import *
@@ -30,7 +30,8 @@ from annotator import Annotator
 
 # kivy.require("2.0")
 if platform == "android":
-	from android.permissions import request_permissions, Permission
+	print("requested permissions")
+	from android.permissions import request_permissions, request_permission, Permission
 	from android.storage import primary_external_storage_path
 	request_permissions([Permission.WRITE_EXTERNAL_STORAGE, Permission.READ_EXTERNAL_STORAGE, Permission.CAMERA])
 
@@ -71,16 +72,14 @@ class StartPage(FloatLayout):
 		self.caller.goToPage("Camera")
 
 ### step 2, load###
-class LoadPage(GridLayout):
+class LoadPage(FloatLayout):
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		print("caller goToPage", type(self.caller.goToPage))
-		super().__init__(**kwargs)
-		self.cols = 1
-		self.file_thing = MDFileManager(preview=True)
-		self.file_thing.bind(select_path=self.select_path)
-		self.file_thing.select_dir_or_file=self.select_path
-		# self.file_thing.select_directory_on_press_button=self.select_path
+		super().__init__()
+		self.file_thing = MDFileManager()
+		self.file_thing.preview = True
+		self.file_thing.select_path = self.select_path
 		if platform == "android":
 			from os.path import join
 			print("primary_external_storage_path : ", join(primary_external_storage_path(), "DCIM"))
@@ -111,24 +110,27 @@ class CameraPage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 
-		self.camera = XCamera(on_picture_taken = self.picture_taken)
-		self.camera.play = False
+		self.camera = XCamera(play = True)
+		self.camera.on_picture_taken = self.picture_taken
 		self.add_widget(self.camera)
+		self.camera.force_landscape()
 
 		self.title = Label(text="Try to get the grid flat and square-on")
 		self.title.size_hint = (1, 0.1)
 		self.add_widget(self.title)
 
-	def picture_taken(self, obj, filename):
+	def picture_taken(self, filename):
 		self.caller.pages["LineUp"].setImage(filename, camera = True)
 		print('Picture taken and saved to {}'.format(filename))
 		self.caller.goToPage("LineUp")
 
 	def started(self):
-		self.camera.play = True
+		# self.camera.play = True
+		pass
 
 	def stopped(self):
-		self.camera.play = False
+		# self.camera.play = False
+		pass
 
 def scaleNumber(n, x1, x2, y1, y2):
 	range1 = x2-x1
@@ -478,11 +480,17 @@ class SolverApp(App):
 
 class TestApp(App):
 	def build(self):
-		self.layout = BoxLayout()
-		self.layout.cols = 2
-		self.thing = Label(text="test label")
+		import time
+		time.sleep(5)
+		self.layout = FloatLayout()
+		try:
+			self.camera = XCamera(play = True)
+			# self.camera.play = False
+			self.layout.add_widget(self.camera)
+		except AttributeError:
+			print("XCamera failed to start")
+		
 		self.testButton = MDRaisedButton(text="test button")
-		self.layout.add_widget(self.thing)
 		self.layout.add_widget(self.testButton)
 		return self.layout
 

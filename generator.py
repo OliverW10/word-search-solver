@@ -107,8 +107,6 @@ def Generate(toGen):
             # cv2.imwrite(f"trainSetImg/{i}.png", im)
     print("\033[A\033[A")
     print(f"{toGen}/{toGen}   [{'#'*percentDone}{'-'*(10-percentDone)}]    {round(i/toGen*100)}%    Finished in: {time.time()-start_time}s")
-    np.save(f"trainSetNp/images.npy", npAll)
-    np.save(f"trainSetNp/labels.npy", npNames)
     np.savez(f"trainSetNp/dataZ.npz", images=npAll, labels=npNames)
 
 if __name__ == "__main__":

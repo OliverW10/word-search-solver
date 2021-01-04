@@ -5,26 +5,12 @@ import string
 import os
 import time
 
-def loadDatasetNpy():
-    print(os.listdir())
-    read_img_start = time.time()
-    with open("./trainSetNp/images.npy", "rb") as f:
-        f.seek(0, 0)
-        images = np.load(f).astype(np.float32)
-    with open("./trainSetNp/labels.npy", "rb") as f:
-        f.seek(0, 0)
-        labels = np.load(f).astype(np.float32)
-    print("load time: " + str(time.time() - read_img_start), "for", len(labels), "samples")
-    return images, labels
-
 def loadDatasetNpz():
-    print(os.listdir())
     read_img_start = time.time()
     with open("./trainSetNp/dataZ.npz", "rb") as f:
         data = np.load(f)
         images = data["images"].astype(np.float32)
         labels = data["labels"].astype(np.float32)
-        print("type: ", type(images), "   shape: ", images.shape)
         print("load time: " + str(time.time() - read_img_start), "for", len(labels), "samples")
         return images, labels
     
