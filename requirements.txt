@@ -3,3 +3,4 @@ opencv-python
 kivy[full]
 kivymd
 image_to_numpy
+imutils

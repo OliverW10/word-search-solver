@@ -8,7 +8,6 @@ The vision isolates letters using [contours](https://opencv-python-tutroals.read
 You can copy the APK file in /bin to your android phone and run it to install the app
 
 TO DO:
- - Make Vision Run threaded so the GUI can still work as its running (for loading bar)
  - Make Annotations look nicer
  - Fix camera rotation on Android
  - Improve vision accuracy

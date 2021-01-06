@@ -6,13 +6,14 @@ import numpy as np
 
 class Solvers:
 	allLetters = string.ascii_letters+" "
-	def wordSearch(grid, words): # seaerches a single grid for the words
+	def wordSearch(grid, words, printNotFound = False): # seaerches a single grid for the words
 		# loop through grid looking for first letter of word, then around that for second and on
 
 		directions = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [-1, -1], [-1, 1], [0, -1]]
 
 		foundWords = {}
 		for n, word in enumerate(words):
+			word = word.strip()
 			foundWords[word] = []
 			# print(word)
 			firsts = Solvers.findLetter(grid, word[0]) # find where all the first letters are
@@ -39,7 +40,8 @@ class Solvers:
 					if stillGoing:
 						# print(f"found word {word} at {str([pos, ( pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ) ])} with {conf} out of {len(word)*len(grid[0][0])} matches")
 						foundWords[word].append({"position":(pos, [ pos[0] + direction[0]*(len(word)-1), pos[1] + direction[1]*(len(word)-1) ] ), "conf":(conf/len(word))/len(grid[0][0])})
-		# print(f"words not found: {list(word for word in foundWords.keys() if len(foundWords[word])==0)}")
+		if printNotFound:
+			print(f"words not found: {list(word for word in foundWords.keys() if len(foundWords[word])==0)}")
 		return foundWords
 
 	def findLetter(grids, toFind): # takes a grid of numbers and a letter as a string

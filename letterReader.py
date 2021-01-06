@@ -8,7 +8,7 @@ class LetterReader:
     def __init__(self):
         self.knn, _, _ = letterReaderTrainer.makeKnn(0)
 
-    def readLetters(self, imgs, k = 10):
+    def readLetters(self, imgs, k = 50):
         # classify a list of images
         for i, img in enumerate(imgs):
             img = self.preProcess(img)

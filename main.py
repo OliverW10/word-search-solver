@@ -88,7 +88,7 @@ class LoadPage(FloatLayout):
 			print("primary_external_storage_path : ", join(primary_external_storage_path(), "DCIM", "Camera"))
 			self.path = join(primary_external_storage_path(), "DCIM", "Camera")
 		else:
-			self.path =  "/home/olikat/word-search-solver/tests/fulls"
+			self.path =  "/home/olikat/word-search-solver/test_images/fulls"
 		# self.add_widget(self.file_thing)
 
 	def select_path(self, path, *args):
@@ -365,7 +365,6 @@ class WordWidget(RelativeLayout):
 		self.removeButton.theme_text_color = "Custom"
 		self.removeButton.text_color = appCaller.theme_cls.primary_color
 		self.removeButton.pos_hint = {"center_x":0.4, "center_y":0.5}
-		print(self.removeButton.pos)
 		self.removeButton.bind(on_release=self.remove)
 		self.add_widget(self.removeButton)
 
@@ -406,7 +405,7 @@ class SolvePage(FloatLayout):
 		pageInst.img = ImageProcessing.loadImg(pageInst.imgPath)
 		grid, gridPlus, allGrids = ImageProcessing.processImage(pageInst.img, pos, debug = False, progressCallback = pageInst.setLoadInfo)
 		pageInst.setLoadInfo(10, "Finding Words")
-		foundWords = Solvers.wordSearch(allGrids, words)
+		foundWords = Solvers.wordSearch(allGrids, words, True)
 		pageInst.setLoadInfo(10, "Annotating Image")
 		outImg = Annotator.annotate(pageInst.img, gridPlus, pos, foundWords)
 		pageInst.setLoadInfo(10, "Done")

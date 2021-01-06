@@ -6,6 +6,7 @@ import imutils
 from PIL import ImageFont, ImageDraw, Image 
 import os
 import time
+import sys
 
 # generates images to be used to train model on
 # model will be used in word search solver app
@@ -110,5 +111,9 @@ def Generate(toGen):
     np.savez(f"trainSetNp/dataZ.npz", images=npAll, labels=npNames)
 
 if __name__ == "__main__":
-    Generate(50000)
+    print(sys.argv)
+    if len(sys.argv) >= 2:
+        Generate(int(sys.argv[1]))
+    else:
+        Generate(25000)
         

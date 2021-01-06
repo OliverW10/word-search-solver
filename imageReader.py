@@ -224,7 +224,7 @@ def lerp(a, b, n):
 
 if __name__ == "__main__":
 	import os
-	fileNames = os.listdir("tests")
+	fileNames = os.listdir("test_images")
 	imageNames = []
 	for i in fileNames: # could probrobly be done in one line
 		if i.lower().endswith(".png") or i.lower().endswith(".jpg"):
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 	imageOutputs = {}
 	for i in range(len(imageNames)):
 		print(imageNames[i])
-		img = cv2.imread("tests/"+imageNames[i]) # "tests/originals/4.png"
+		img = cv2.imread("test_images/"+imageNames[i]) # "tests/originals/4.png"
 		timeCheckpoints = [["start", time.time()]]
 		grid, letters, possibleGrids = ImageProcessing.processImage(img, [[0, 0], [1, 0], [1, 1]], True, )
 		
@@ -261,7 +261,7 @@ if __name__ == "__main__":
 		# cv2.waitKey(0)
 		# cv2.destroyAllWindows()
 
-	np.savez("tests/output/data.npz", **imageOutputs)
+	np.savez("test_images/output/data.npz", **imageOutputs)
 	for i in range(len(checkpointAverages)):
 		print("avg", checkpointAverages[i][0], checkpointAverages[i][1]/5)
 	print("avg total time", sum(x[1] for x in checkpointAverages)/5)
