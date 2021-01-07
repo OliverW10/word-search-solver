@@ -1,40 +1,52 @@
 import numpy as np
 import cv2
-from copy import deepcopy
 import math
 
 class Annotator:
-	def unCropPos(pos, p1, p2, imgSize):
-		newX = pos[0]*(p2[0]-p1[0])
-		newY = pos[1]*(p2[1]-p1[1])
-		return newX+p1[0], newY+p1[1]
 
 	def annotate(img, gridPlus, cropPos, words):
 		drawImg = img.copy()
+		print("image size", drawImg.shape)
 		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0])) # top left
 		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0])) # bottom right
+		def unCropNum(n):
+			return int(n*(p2[0]-p1[0]))
+
+		def unCropPos(pos):
+		# translates from position in the cropped image to position in the full image
+			newX = pos[0]*(p2[0]-p1[0])
+			newY = pos[1]*(p2[1]-p1[1])
+			return (int(newX+p1[0]), int(newY+p1[1]))
+
 		for word in words.keys():
 			if len(words[word]) >= 1:
 				wordPos = max(words[word], key=lambda x:x["conf"])["position"] # chooses word with highest confidence
 				letterRects = [ gridPlus[wordPos[0][0]][wordPos[0][1]][1], gridPlus[wordPos[1][0]][wordPos[1][1]][1] ]
-				letterSize = (letterRects[0][2]+letterRects[0][3] + letterRects[1][2]+letterRects[1][3])/5 # by 5 beacuse the rect it bigger than the letter
-				print("letter size", letterSize)
+				letterSize = (letterRects[0][2]+letterRects[0][3] + letterRects[1][2]+letterRects[1][3])/5 # by 5 beacuse the rect is bigger than the letter
 
+				# the centers of the first and lest letters
 				letterPoints = [ [letterRects[0][0]+letterRects[0][2]/2, letterRects[0][1]+letterRects[0][3]/2] , [letterRects[1][0]+letterRects[1][2]/2, letterRects[1][1]+letterRects[1][3]/2]]
 				
-				angle = -math.atan2(letterPoints[1][1]-letterPoints[0][1], letterPoints[1][0]-letterPoints[0][0])
-				print(angle, "angle")
+				angle = -math.atan2(letterPoints[1][1]-letterPoints[0][1], letterPoints[1][0]-letterPoints[0][0]) # angle between the first letter and the last
 
-				sideLines = [[letterPoints[0][0] + math.sin(angle)*letterSize, letterPoints[0][1] + math.cos(angle)*letterSize], # first line
-				[letterPoints[1][0] + math.sin(angle)*letterSize, letterPoints[1][1] + math.cos(angle)*letterSize],
-				[letterPoints[1][0] - math.sin(angle)*letterSize, letterPoints[1][1] - math.cos(angle)*letterSize], # second line
+				line1 = [[letterPoints[0][0] + math.sin(angle)*letterSize, letterPoints[0][1] + math.cos(angle)*letterSize],
+				[letterPoints[1][0] + math.sin(angle)*letterSize, letterPoints[1][1] + math.cos(angle)*letterSize]]
+				
+				line2 = [[letterPoints[1][0] - math.sin(angle)*letterSize, letterPoints[1][1] - math.cos(angle)*letterSize],
 				[letterPoints[0][0] - math.sin(angle)*letterSize, letterPoints[0][1] - math.cos(angle)*letterSize]]
 
-				linePoints = [Annotator.unCropPos(sideLines[i], p1, p2, img.shape) for i in range(4)]
+				line1 = [unCropPos(line1[i]) for i in range(2)]
+				line2 = [unCropPos(line2[i]) for i in range(2)]
+				print("line1",line1)
+				print("line2",line2)
+				drawImg = cv2.line(drawImg, line1[0], line1[1], (0,255,255), int(img.shape[0]/500))
+				drawImg = cv2.line(drawImg, line2[0], line2[1], (0,255,255), int(img.shape[0]/500))
 
-				pts = np.array(linePoints, np.int32)
-				pts = pts.reshape((-1,1,2))
-				cv2.polylines(drawImg, [pts], False, (0,255,255), int(img.shape[0]/500))
+				print("ellipse size", unCropNum(letterSize))
+				print("letter size", letterSize)
+				rad = unCropNum(letterSize)
+				drawImg = cv2.ellipse(drawImg, unCropPos(letterPoints[0]), (rad, rad), 0, math.degrees(-angle)+90, math.degrees(-angle)+270, (0, 255, 255), int(img.shape[0]/500))
+				drawImg = cv2.ellipse(drawImg, unCropPos(letterPoints[1]), (rad, rad), 0, math.degrees(-angle)+90, math.degrees(-angle)-90, (0, 255, 255), int(img.shape[0]/500))
 			else:
 				print(f"word {word} not found")
 		# for l in lettersPlus:

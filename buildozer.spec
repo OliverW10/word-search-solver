@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,npy,npz
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin, fonts, results, testModel1, tests, env
+source.exclude_dirs = bin, fonts, results, testModel1, tests, env, test_images
 
 # (list) List of exclusions using pattern matching
 #source.exclude_patterns = license
