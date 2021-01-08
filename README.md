@@ -8,6 +8,5 @@ The vision isolates letters using [contours](https://opencv-python-tutroals.read
 You can copy the APK file in /bin to your android phone and run it to install the app
 
 TO DO:
- - Make Annotations look nicer
- - Fix camera rotation on Android
- - Improve vision accuracy
+ - Fix camera rotation/display on Android
+ - Make Solver Based on position not grid

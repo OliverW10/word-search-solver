@@ -23,7 +23,8 @@ from kivy.clock import mainthread
 import time
 import numpy as np
 import image_to_numpy
-from os.path import isfile
+from os.path import isfile, isdir
+import time
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -81,8 +82,10 @@ class LoadPage(FloatLayout):
 		print("caller goToPage", type(self.caller.goToPage))
 		super().__init__()
 		self.file_thing = MDFileManager()
-		self.file_thing.preview = True
 		self.file_thing.select_path = self.select_path
+		self.file_thing.preview = True
+		self.file_thing.sort_by = "date"
+
 		if platform == "android":
 			from os.path import join
 			print("primary_external_storage_path : ", join(primary_external_storage_path(), "DCIM", "Camera"))
@@ -118,7 +121,17 @@ class CameraPage(FloatLayout):
 		self.add_widget(self.camera)
 		if platform == "android":
 			from os.path import join
-			self.camera.directory = join(primary_external_storage_path(), "DCIM", "Camera")
+			from os import mkdir
+			path = join(primary_external_storage_path(), "Pictures", "WordSearchSolver")
+			if not isdir(path):
+				try:
+					os.mkdir(path)
+				except OSError:
+					print ("Creation of the directory %s failed" % path)
+				else:
+					print ("Successfully created the directory %s " % path)
+
+			self.camera.directory = path
 
 		self.title = Label(text="Try to get the grid flat and square-on")
 		self.title.size_hint = (1, 0.1)
@@ -159,10 +172,14 @@ class LineUpPage(FloatLayout):
 		self.movingLayout.do_rotation = False
 		self.add_widget(self.movingLayout)
 
-		self.continueButton = MDRaisedButton(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.85})
+		self.continueButton = MDRaisedButton(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.9})
 		self.add_widget(self.continueButton)
 		self.continueButton.bind(on_release = self.continued)
 		self.on_touch_up = self.buttonTouchCheck
+
+		self.refreshButton = MDRaisedButton(text="Refresh Image", size_hint = (0.125, 0.075), pos_hint = {"x":0, "y":0})
+		self.add_widget(self.refreshButton)
+		self.refreshButton.bind(on_release = self.refresh)
 
 		self.squareMargin = 0.1
 		self.createImgTexture()
@@ -170,14 +187,21 @@ class LineUpPage(FloatLayout):
 		# self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
 		self.makeSquare(self.squareMargin)
 
+		self.angle = 0
+
 	def buttonTouchCheck(self, touch, *args):
 		# print("Widget Pos", self.continueButton.pos, self.continueButton.size)
 		# print("Touch pos ", self.to_local(touch.pos[0], touch.pos[1]))
 		# print("Touch Check ", self.continueButton.collide_point(touch.pos[0], touch.pos[1]))
 		if self.continueButton.collide_point(*touch.pos):
 			self.continued()
-		else:	
+		elif self.refreshButton.collide_point(*touch.pos):
+			self.refresh()
+		else:
 			return self.movingLayout.on_touch_up(touch)
+
+	def refresh(self, *args):
+		self.setImage(self.imgFilename)
 
 	def setImage(self, img, camera = False):
 		print("path given: ",img)
@@ -240,11 +264,10 @@ class LineUpPage(FloatLayout):
 	def createImgTexture(self, source = "temp_img.png"):
 		if source != "temp_img.png":
 			print("source for createImgTexture was", source)
-			self.imgFilename = source
 		else:
 			print("didnt get source for createImgTexture")
 		# loads image into numpy array
-		self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8)
+		self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8) # ImageProcessing.loadImg(source) # 
 		self.imgNp = np.flip(self.imgNp, 0)
 		# turn numpy array into buffer
 		self.imgBuf = self.imgNp.tobytes()
@@ -290,6 +313,9 @@ class LineUpPage(FloatLayout):
 
 		self.remove_widget(self.continueButton)
 		self.add_widget(self.continueButton)
+
+		self.remove_widget(self.refreshButton)
+		self.add_widget(self.refreshButton)
 
 ### 4 ###
 class WordsPage(FloatLayout):

@@ -160,7 +160,7 @@ class ImageProcessing:
 		# print("letters num before: ", len(letterPositions))
 		# print("letters num after: ", len(lettersPlus))
 		gridSize = round(len(lettersPlus) ** 0.5)
-		print("gridSize: ", gridSize)
+		# print("gridSize: ", gridSize)
 		callback(10, "Forming Grid")
 		# position all letters in grid
 		grid = []
