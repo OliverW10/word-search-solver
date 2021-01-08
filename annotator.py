@@ -37,13 +37,9 @@ class Annotator:
 
 				line1 = [unCropPos(line1[i]) for i in range(2)]
 				line2 = [unCropPos(line2[i]) for i in range(2)]
-				print("line1",line1)
-				print("line2",line2)
 				drawImg = cv2.line(drawImg, line1[0], line1[1], (0,255,255), int(img.shape[0]/500))
 				drawImg = cv2.line(drawImg, line2[0], line2[1], (0,255,255), int(img.shape[0]/500))
 
-				print("ellipse size", unCropNum(letterSize))
-				print("letter size", letterSize)
 				rad = unCropNum(letterSize)
 				drawImg = cv2.ellipse(drawImg, unCropPos(letterPoints[0]), (rad, rad), 0, math.degrees(-angle)+90, math.degrees(-angle)+270, (0, 255, 255), int(img.shape[0]/500))
 				drawImg = cv2.ellipse(drawImg, unCropPos(letterPoints[1]), (rad, rad), 0, math.degrees(-angle)+90, math.degrees(-angle)-90, (0, 255, 255), int(img.shape[0]/500))

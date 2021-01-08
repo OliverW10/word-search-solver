@@ -8,13 +8,15 @@ class LetterReader:
     def __init__(self):
         self.knn, _, _ = letterReaderTrainer.makeKnn(0)
 
-    def readLetters(self, imgs, k = 50):
+    def readLetters(self, imgs, loadingCallback = lambda *x:x, k=50):
+        loadingCallback(10, "Preparing Letters")
         # classify a list of images
         for i, img in enumerate(imgs):
             img = self.preProcess(img)
         imgs = np.reshape(imgs, (imgs.shape[0], 1024)).astype(np.float32)
 
         #cv2.imwrite(f"{random.randint(0, 1000)}.png", imgs[0])
+        loadingCallback(10, "Classifying Letters")
         ret,result,neighbours,dist = self.knn.findNearest(imgs,k=k)
         return result, neighbours
         

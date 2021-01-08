@@ -25,6 +25,7 @@ import numpy as np
 import image_to_numpy
 from os.path import isfile, isdir
 import time
+import cv2
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -166,7 +167,7 @@ class LineUpPage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 		self.imgFilename = "temp_img.png"
-		self.imgRect = [0, 0, 1, 1]
+		self.angle = 0
 
 		self.movingLayout = Scatter()
 		self.movingLayout.do_rotation = False
@@ -174,20 +175,18 @@ class LineUpPage(FloatLayout):
 
 		self.continueButton = MDRaisedButton(text="Continue", size_hint = (0.15, 0.1), pos_hint = {"x":0.85, "y":0.9})
 		self.add_widget(self.continueButton)
-		self.continueButton.bind(on_release = self.continued)
+		# self.continueButton.bind(on_release = self.continued)
 		self.on_touch_up = self.buttonTouchCheck
 
-		self.refreshButton = MDRaisedButton(text="Refresh Image", size_hint = (0.125, 0.075), pos_hint = {"x":0, "y":0})
+		self.refreshButton = MDRaisedButton(text="Rotate", size_hint = (0.125, 0.075), pos_hint = {"x":0, "y":0})
 		self.add_widget(self.refreshButton)
-		self.refreshButton.bind(on_release = self.refresh)
+		# self.refreshButton.bind(on_release = self.rotate)
 
 		self.squareMargin = 0.1
 		self.createImgTexture()
 		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
 		# self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
 		self.makeSquare(self.squareMargin)
-
-		self.angle = 0
 
 	def buttonTouchCheck(self, touch, *args):
 		# print("Widget Pos", self.continueButton.pos, self.continueButton.size)
@@ -196,11 +195,17 @@ class LineUpPage(FloatLayout):
 		if self.continueButton.collide_point(*touch.pos):
 			self.continued()
 		elif self.refreshButton.collide_point(*touch.pos):
-			self.refresh()
+			self.rotate()
 		else:
 			return self.movingLayout.on_touch_up(touch)
 
 	def refresh(self, *args):
+		self.setImage(self.imgFilename)
+
+	def rotate(self, *args):
+		self.angle += 1
+		if self.angle >= 4:
+			self.angle = 0
 		self.setImage(self.imgFilename)
 
 	def setImage(self, img, camera = False):
@@ -267,8 +272,12 @@ class LineUpPage(FloatLayout):
 		else:
 			print("didnt get source for createImgTexture")
 		# loads image into numpy array
-		self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8) # ImageProcessing.loadImg(source) # 
+		self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8)
 		self.imgNp = np.flip(self.imgNp, 0)
+		# rotates it based on self.angle
+		print("angle", self.angle,"   angle given", self.angle-1)
+		if self.angle != 0:
+			self.imgNp = cv2.rotate(self.imgNp, self.angle-1)
 		# turn numpy array into buffer
 		self.imgBuf = self.imgNp.tobytes()
 		# then into kivy texture
@@ -397,6 +406,20 @@ class WordWidget(RelativeLayout):
 	def remove(self, *args):
 		self.caller.removeWord(self.textLabel.text)
 
+checkpoint_times = [ # times to base the loading bar off
+0.022075414657592773, 
+0.7521471977233887, 
+0.8141767978668213, 
+0.8585145473480225, 
+0.863696813583374, 
+1.302180528640747, 
+1.312652349472046, 
+3.0844106674194336, 
+3.089580535888672, 
+3.3388493061065674, 
+3.3389062881469727, 
+]
+
 ### 5 ###
 class SolvePage(FloatLayout):
 	def __init__(self, caller, **kwargs):
@@ -411,14 +434,19 @@ class SolvePage(FloatLayout):
 		self.message.pos_hint = {"center_x":0.5, "center_y":0.4}
 		self.add_widget(self.message)
 
+		self.start_time = 0
+		self.checkpoint = 0
+
 	@mainthread
 	def setLoadInfo(self, value, message):
-		print("Old", self.loader.value, "	New", (self.loader.value+value))
-		self.loader.value += value
+		# print("time since start", time.time()-self.start_time)
+		self.loader.value = (checkpoint_times[self.checkpoint] / checkpoint_times[-1])*100
 		self.message.text = message
+		self.checkpoint += 1
 
 	def solve(self, imgPath, lookWords, pos):
 		# call _solve in another thread
+		self.start_time = time.time()
 		self.outImg = "not set"
 		self.thread = threading.Thread(target=SolvePage._solve, args=(imgPath, lookWords, pos, self))
 		print("solve looking for", lookWords, "in", imgPath, "at", pos)

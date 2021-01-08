@@ -29,7 +29,7 @@ class ImageProcessing:
 		# cv2.imshow("cropped image", smallImg)
 		# cv2.waitKey()
 		# cv2.destroyAllWindows()
-		grid, letters, allGrids = ImageProcessing.findLetters(newImg, debug, callback = progressCallback)
+		grid, letters, allGrids = ImageProcessing.findLetters(newImg, debug, progressCallback)
 
 		return ImageProcessing.makeGridFull(grid, letters, allGrids)
 
@@ -62,7 +62,7 @@ class ImageProcessing:
 			timeCheckpoints.append(["finished preProcessImg", time.time()])
 		return img
 
-	def findLetters(img, debug = False, callback = lambda x:x):
+	def findLetters(img, debug = False, callback = lambda *x:x):
 		callback(10, "Finding Possible Letters")
 		if debug:
 			timeCheckpoints.append(["got to findLetters", time.time()])
@@ -137,9 +137,9 @@ class ImageProcessing:
 
 		if debug:
 			timeCheckpoints.append(["finished box check", time.time()])
-		callback(10, "Classifiying letters")
+
 		# get the letter for each contour and its confidence
-		letters, neighbours = ImageProcessing.letReader.readLetters(letterImgs)
+		letters, neighbours = ImageProcessing.letReader.readLetters(letterImgs, callback)
 		if debug:
 			timeCheckpoints.append(["finished letter classification", time.time()])
 		# combine the letters, their positions and the confidence and removes all badCnts
