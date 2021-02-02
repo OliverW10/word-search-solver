@@ -9,3 +9,5 @@ You can copy the APK file in /bin to your android phone and run it to install th
 
 TO DO:
  - Make Solver Based on position not grid
+
+ The code is a bit of a mess

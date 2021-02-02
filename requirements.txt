@@ -2,5 +2,6 @@ numpy
 opencv-python
 kivy[full]
 kivymd
+kivy-garden.xcamera
 image_to_numpy
 imutils

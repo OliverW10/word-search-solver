@@ -155,14 +155,12 @@ class CameraPage(FloatLayout):
 	def stopped(self):
 		self.camera.restore_orientation()
 
-def scaleNumber(n, x1, x2, y1, y2):
-	range1 = x2-x1
-	range2 = y2-y1
-	ratio = (n-x1)/range1
-	return ratio * range2+y1
 
 ### 3 ###
 class LineUpPage(FloatLayout):
+	'''
+	Displays an image and a movable square that allows the user to select the reigon of interest
+	'''
 	def __init__(self, caller, **kwargs):
 		self.caller = caller
 		super().__init__(**kwargs)
@@ -185,13 +183,10 @@ class LineUpPage(FloatLayout):
 		self.squareMargin = 0.1
 		self.createImgTexture()
 		Window.bind(on_resize=lambda *args:self.makeSquare(self.squareMargin))
-		# self.movingLayout.bind(on_transform_with_touch=lambda *args:print(self.getPosCv()))
 		self.makeSquare(self.squareMargin)
 
 	def buttonTouchCheck(self, touch, *args):
-		# print("Widget Pos", self.continueButton.pos, self.continueButton.size)
-		# print("Touch pos ", self.to_local(touch.pos[0], touch.pos[1]))
-		# print("Touch Check ", self.continueButton.collide_point(touch.pos[0], touch.pos[1]))
+		# called in place of the usual collitions to make sure the buttons have top priority
 		if self.continueButton.collide_point(*touch.pos):
 			self.continued()
 		elif self.refreshButton.collide_point(*touch.pos):
@@ -203,12 +198,15 @@ class LineUpPage(FloatLayout):
 		self.setImage(self.imgFilename)
 
 	def rotate(self, *args):
+		# changes the rotatorion value and reloads the image completely
+		# TO_DO: could just rotate the image without wasting time reloading it
 		self.angle += 1
 		if self.angle >= 4:
 			self.angle = 0
 		self.setImage(self.imgFilename)
 
 	def setImage(self, img, camera = False):
+		# loads and renders the given image and the line-up square on top of it
 		print("path given: ",img)
 		self.imgFilename = img
 		self.createImgTexture(img)
@@ -218,7 +216,7 @@ class LineUpPage(FloatLayout):
 		return self.imgFilename != "temp_img.png"
 
 	def continued(self, *args):
-		print(self.getPosCv())
+		# called when the continued button is pressed to go to the next page
 		if self.checkSet:
 			self.caller.pages["Words"].setStuff(self.imgFilename, self.getPosCv())
 			self.caller.goToPage("Words")
@@ -233,22 +231,8 @@ class LineUpPage(FloatLayout):
 		bottomRight = self.movingLayout.to_parent(midX+size, midY-size)
 		return topLeft, topRight, bottomRight, bottomLeft
 
-	def getPosCv2(self):
-		# gets the coordinates of each corner of the line-up square with the origin being top left as a percentage of the window size
-		size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-self.squareMargin/2) # half of the side length of the line-up square
-		midX, midY = Window.size[0]/2, Window.size[1]/2
-		# origin is bottom left
-		topLeft = np.array(self.movingLayout.to_parent(midX-size, midY+size)) / np.array([Window.size[0], Window.size[1]])
-		topRight = np.array(self.movingLayout.to_parent(midX+size, midY+size)) / np.array([Window.size[0], Window.size[1]])
-		bottomLeft = np.array(self.movingLayout.to_parent(midX-size, midY-size)) / np.array([Window.size[0], Window.size[1]])
-		bottomRight = np.array(self.movingLayout.to_parent(midX+size, midY-size)) / np.array([Window.size[0], Window.size[1]])
-		topLeft[1] =1-topLeft[1]
-		topRight[1] =1-topRight[1]
-		bottomLeft[1] =1-bottomLeft[1]
-		bottomRight[1] =1-bottomRight[1]
-		return topLeft, topRight, bottomRight, bottomLeft
-
 	def getPosCv(self):
+		# gets the coordinates of each corner of the line-up square  with the origin top left
 		size = min(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1])*(0.5-self.squareMargin/2)
 		midX, midY = Window.size[0]/2, Window.size[1]/2
 		topLeft = self.squareToImg(midX-size, midY+size)
@@ -263,10 +247,14 @@ class LineUpPage(FloatLayout):
 		kivyPosPx = self.movingLayout.to_parent(x, y) # the position in the window in pixels
 		kivyPosPe = np.array(kivyPosPx) / np.array(Window.size) # the position in the window as a percent
 		imPos = [ (kivyPosPe[0]-self.imgPos[0])/self.imgSize[0],
-		1 - (kivyPosPe[1]-self.imgPos[1])/self.imgSize[1] ] #scaleNumber(kivyPosPe[1], 0, 1, self.imgPos[1], self.imgPos[1]+self.imgSize[1])
+		(kivyPosPe[1]-self.imgPos[1])/self.imgSize[1] ]
 		return imPos
 
 	def createImgTexture(self, source = "temp_img.png"):
+		'''
+		loads an image and turns it into a kivy texture
+		also rotated it based on self.angle which is an int from 0-3
+		'''
 		if source != "temp_img.png":
 			print("source for createImgTexture was", source)
 		else:
@@ -285,9 +273,9 @@ class LineUpPage(FloatLayout):
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
 
 	def makeSquare(self, margin):
-		# print("square resizers callback called")
-		# print("window size: ", Window.size)
-
+		'''
+		draws the line-up square to the movingLayout canvas and the imgText generated in createImgTexture on this pages canvas
+		'''
 		self.canvas.clear()
 		with self.canvas:
 			# find if the width/height ratio of the image is more or less than the window
@@ -305,9 +293,6 @@ class LineUpPage(FloatLayout):
 			self.imgPos = [x/Window.size[0], y/Window.size[1]]
 			Rectangle(pos=(x, y), size=(self.imgSize[0]*Window.size[0], self.imgSize[1]*Window.size[1]), texture = self.imgTex)
 			Color(1.0, 0, 0)
-			pos = self.getPosKivy()
-			for p in pos:
-				Line(circle=(p[0], p[1], 25))
 
 			Color(1.0, 1.0, 1.0)
 
@@ -320,6 +305,7 @@ class LineUpPage(FloatLayout):
 			Line(rectangle=(midX-size, midY-size, size*2, size*2), width=3)
 		self.add_widget(self.movingLayout)
 
+		# have to remove and re add the widgets so that their collisions get processed first
 		self.remove_widget(self.continueButton)
 		self.add_widget(self.continueButton)
 
@@ -332,11 +318,11 @@ class WordsPage(FloatLayout):
 		self.caller = caller
 		super().__init__(**kwargs)
 		self.textinput = TextInput(hint_text='Enter words', multiline=False, size_hint = (0.8, 0.1), pos_hint={"x":0.05, "y":0.85} , text_validate_unfocus = False)
-		self.textinput.bind(on_text_validate=self.addWord)
+		self.textinput.bind(on_text_validate=self.addWord) # pressed enter
 		self.add_widget(self.textinput)
 
 		self.addButton = MDRaisedButton(text = "Add Words", size_hint = (0.1, 0.1), pos_hint = {"x":0.85, "y":0.85})
-		self.addButton.bind(on_release = self.addWord)
+		self.addButton.bind(on_release = self.addWord) # pressed add button
 		self.add_widget(self.addButton)
 
 		self.words = []
@@ -353,7 +339,16 @@ class WordsPage(FloatLayout):
 		self.img = "not set yet"
 		self.cropPos = "not set yet"
 
+	def testWord(self, word):
+		# tests if should add a word
+		if word in self.words or len(word.strip()) <= 1:
+			return False
+		else:
+			return True
+
 	def addWord(self, *args):
+		# creates a new WordWidget and adds word to self.words
+		# is a callback for self.addButton.on_release
 		if self.testWord(self.textinput.text):
 			self.words.append(self.textinput.text)
 			self.textinput.text = ""
@@ -377,13 +372,6 @@ class WordsPage(FloatLayout):
 	def setStuff(self, img, pos): # this is the path not the actual image
 		self.img = img
 		self.cropPos = pos
-
-	def testWord(self, word):
-		# tests if you can add a word
-		if word == "" or word in self.words:
-			return False
-		else:
-			return True
 
 class WordWidget(RelativeLayout):
 	def __init__(self, text, caller, appCaller, **kwargs):
@@ -452,11 +440,18 @@ class SolvePage(FloatLayout):
 		print("solve looking for", lookWords, "in", imgPath, "at", pos)
 		self.checkDoneEvent = Clock.schedule_interval(self.checkDone, 1) # checks if _solve is done and goes to next page
 		self.thread.start()
+		# SolvePage._solve(imgPath, lookWords, pos, self)
 
 	def _solve(imgPath, words, pos, pageInst):
 		pageInst.setLoadInfo(0, "Loading Image")
 		pageInst.imgPath = imgPath
 		pageInst.img = ImageProcessing.loadImg(pageInst.imgPath)
+		pageInst.img = np.flip(pageInst.img, 0)
+		if pageInst.caller.pages["LineUp"].angle != 0:
+			pageInst.img = cv2.rotate(pageInst.img, pageInst.caller.pages["LineUp"].angle-1)
+		# cv2.imshow("image given", pageInst.img)
+		# cv2.waitKey()
+		# cv2.destroyAllWindows()
 		grid, gridPlus, allGrids = ImageProcessing.processImage(pageInst.img, pos, debug = False, progressCallback = pageInst.setLoadInfo)
 		pageInst.setLoadInfo(10, "Finding Words")
 		foundWords = Solvers.wordSearch(allGrids, words, True)
@@ -475,7 +470,7 @@ class SolvePage(FloatLayout):
 
 	@mainthread
 	def checkDone(self, *args):
-		if self.outImg == "not set":
+		if type(self.outImg) == str:
 			return False
 		else:
 			print("outImg has been set")
@@ -507,12 +502,11 @@ class FinalPage(FloatLayout):
 
 	def setImageBuf(self, img):
 		print("final page image set ", type(img), img.shape)
-		self.imgNp = np.flip(img, 0)
 		# takes a numpy image
 		# turn numpy array into buffer
-		self.imgBuf = self.imgNp.tobytes()
+		self.imgBuf = img.tobytes()
 		# then into kivy texture
-		self.imgTex = Texture.create(size=(self.imgNp.shape[1], self.imgNp.shape[0]), colorfmt="rgb")
+		self.imgTex = Texture.create(size=(img.shape[1], img.shape[0]), colorfmt="rgb")
 		self.imgTex.blit_buffer(self.imgBuf, bufferfmt="ubyte", colorfmt="rgb") # default colorfmt and bufferfmt
 
 		self.canvas.clear()
@@ -557,12 +551,14 @@ class SolverApp(App):
 		try:
 			self.pages[self.lastPages[-1]].stopped()
 		except AttributeError:
-			print("no start function")
+			# print("no start function")
+			...
 
 		try:
 			self.pages[name].started()
 		except AttributeError:
-			print("no end function")
+			# print("no end function")
+			...
 
 	def backPage(self):
 		if len(self.lastPages) >= 1:

@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import letterReaderTrainer
-import random
 
 # run an already trained model on a image
 class LetterReader:
@@ -15,7 +14,6 @@ class LetterReader:
             img = self.preProcess(img)
         imgs = np.reshape(imgs, (imgs.shape[0], 1024)).astype(np.float32)
 
-        #cv2.imwrite(f"{random.randint(0, 1000)}.png", imgs[0])
         loadingCallback(10, "Classifying Letters")
         ret,result,neighbours,dist = self.knn.findNearest(imgs,k=k)
         return result, neighbours

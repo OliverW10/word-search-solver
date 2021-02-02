@@ -5,10 +5,14 @@ import math
 class Annotator:
 
 	def annotate(img, gridPlus, cropPos, words):
+		print("annotator words", words)
 		drawImg = img.copy()
 		print("image size", drawImg.shape)
-		p1 = (int(cropPos[0][0] * img.shape[1]), int(cropPos[0][1] * img.shape[0])) # top left
-		p2 = (int(cropPos[2][0] * img.shape[1]), int(cropPos[2][1] * img.shape[0])) # bottom right
+		p1 = [ cropPos[0][0] * img.shape[1], cropPos[0][1] * img.shape[0] ] # top left
+		p2 = [ cropPos[2][0] * img.shape[1], cropPos[2][1] * img.shape[0] ] # bottom right
+
+		# p1 = ( min(_p1[0], _p2[0]), min(_p1[1], _p2[1]) )
+		# p2 = ( max(_p1[0], _p2[0]), max(_p1[1], _p2[1]) )
 		def unCropNum(n):
 			return int(n*(p2[0]-p1[0]))
 
@@ -18,6 +22,7 @@ class Annotator:
 			newY = pos[1]*(p2[1]-p1[1])
 			return (int(newX+p1[0]), int(newY+p1[1]))
 
+		print("p1", p1, "    p2", p2)
 		for word in words.keys():
 			if len(words[word]) >= 1:
 				wordPos = max(words[word], key=lambda x:x["conf"])["position"] # chooses word with highest confidence
@@ -35,10 +40,12 @@ class Annotator:
 				line2 = [[letterPoints[1][0] - math.sin(angle)*letterSize, letterPoints[1][1] - math.cos(angle)*letterSize],
 				[letterPoints[0][0] - math.sin(angle)*letterSize, letterPoints[0][1] - math.cos(angle)*letterSize]]
 
+				print("before", line1, line2)
 				line1 = [unCropPos(line1[i]) for i in range(2)]
 				line2 = [unCropPos(line2[i]) for i in range(2)]
-				drawImg = cv2.line(drawImg, line1[0], line1[1], (0,255,255), int(img.shape[0]/500))
-				drawImg = cv2.line(drawImg, line2[0], line2[1], (0,255,255), int(img.shape[0]/500))
+				print("after", line1, line2)
+				drawImg = cv2.line(drawImg, line1[0], line1[1], (0,255,255), math.ceil(img.shape[0]/500))
+				drawImg = cv2.line(drawImg, line2[0], line2[1], (0,255,255), math.ceil(img.shape[0]/500))
 
 				rad = unCropNum(letterSize)
 				drawImg = cv2.ellipse(drawImg, unCropPos(letterPoints[0]), (rad, rad), 0, math.degrees(-angle)+90, math.degrees(-angle)+270, (0, 255, 255), int(img.shape[0]/500))
@@ -50,7 +57,7 @@ class Annotator:
 		# 	y = int(lerp(cropPos[0][1], cropPos[2][1], l[1][1]) * img.shape[0])
 		# 	img = cv2.putText(img, l[0], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX , 2, 0, 2, cv2.LINE_AA) 
 		# 	# cv2.rectangle(img,  (l[1][0], l[1][1]), (l[1][0]+l[1][2], l[1][1]+l[1][3]),  20, 3)
-		cv2.rectangle(drawImg, p1, p2, (0, 255, 0), 3)
+		cv2.rectangle(drawImg, tuple(map(int, p1)), tuple(map(int, p2)), (0, 255, 0), 2)
 		return drawImg
 
 	def drawGrid(grid, size = (800, 800)):

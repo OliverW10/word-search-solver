@@ -22,8 +22,9 @@ class ImageProcessing:
 		return image_to_numpy.load_image_file(fileName)
 
 	def processImage(img, pos, debug = False, progressCallback = lambda *x:x):
+		flippedImg = np.flip(img, 0)
 		progressCallback(10, "Pre-processing")
-		croppedImg = ImageProcessing.cropToRect(img, pos=pos)
+		croppedImg = ImageProcessing.cropToRect(flippedImg, pos=pos)
 		smallImg = cv2.resize(croppedImg, None, fx = ImageProcessing.shrinkRatio, fy = ImageProcessing.shrinkRatio)
 		newImg = ImageProcessing.preProcessImg(smallImg, debug = debug)
 		# cv2.imshow("cropped image", smallImg)
@@ -205,7 +206,7 @@ class ImageProcessing:
 		else:
 			raise Exception("cropToRect given no kwarg")
 		cropPos = ImageProcessing.fixCropPos(p1, p2)
-		return img[p1[1]:p2[1], p1[0]:p2[0]]
+		return img[cropPos[2]:cropPos[3], cropPos[0]:cropPos[1]]
 
 	def fixCropPos(p1, p2):
 		# makes the first of each axis of the cropPos to be the smallest

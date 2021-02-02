@@ -57,6 +57,24 @@ class Solvers:
 		return sum(Solvers.allLetters[int(letterIdx)].lower() == letter.lower() for letterIdx in possibilities)
 
 
+class PositionSolver:
+	def wordSearch(gridPlus, words):
+		'''
+		will be slower by less suseptable to mistakes in gridSize
+		psudocode
+		for each word
+			find each instance of the first letter
+				check for any of the second letters near by
+				if its found get the angle
+				find any of the third letter near by that roughly follow the angle
+				repeat for each letter
+				can use how much it follows the angle in confidence aswell
+		'''
+		foundWords = {}
+		for word in words:
+			pass
+
+
 if __name__ == "__main__":
 
 	def generateWordSearch(size, words, backwards = False): # only for debugging so not in a class

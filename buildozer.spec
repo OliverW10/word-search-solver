@@ -28,7 +28,7 @@ source.exclude_dirs = bin, fonts, results, testModel1, tests, env, test_images
 #source.exclude_patterns = license
 
 # (str) Application versioning (method 1)
-version = 0.2
+version = 0.3
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
