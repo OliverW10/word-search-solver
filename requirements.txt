@@ -5,3 +5,4 @@ kivymd
 kivy-garden.xcamera
 image_to_numpy
 imutils
+xcamera
