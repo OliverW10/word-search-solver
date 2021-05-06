@@ -104,7 +104,7 @@ class LoadPage(FloatLayout):
             )
             self.path = join(primary_external_storage_path(), "DCIM", "Camera")
         else:
-            self.path = "/home/olikat/word-search-solver/test_images/fulls"
+            self.path = "./test_images/fulls"
         # self.add_widget(self.file_thing)
 
     def select_path(self, path, *args):
@@ -241,20 +241,6 @@ class LineUpPage(FloatLayout):
             self.caller.pages["Words"].setStuff(self.imgFilename, self.getPosCv())
             self.caller.goToPage("Words")
 
-    def getPosKivy(self):
-        # gets the coordinates of each corner of the line-up square with the origin being bottom left in pixels
-        size = min(
-            self.imgSize[0] * Window.size[0], self.imgSize[1] * Window.size[1]
-        ) * (
-            0.5 - self.squareMargin / 2
-        )  # half of the side length of the line-up square
-        midX, midY = Window.size[0] / 2, Window.size[1] / 2
-        topLeft = self.movingLayout.to_parent(midX - size, midY + size)
-        topRight = self.movingLayout.to_parent(midX + size, midY + size)
-        bottomLeft = self.movingLayout.to_parent(midX - size, midY - size)
-        bottomRight = self.movingLayout.to_parent(midX + size, midY - size)
-        return topLeft, topRight, bottomRight, bottomLeft
-
     def getPosCv(self):
         # gets the coordinates of each corner of the line-up square  with the origin top left
         size = min(
@@ -278,7 +264,7 @@ class LineUpPage(FloatLayout):
         )  # the position in the window as a percent
         imPos = [
             (kivyPosPe[0] - self.imgPos[0]) / self.imgSize[0],
-            (kivyPosPe[1] - self.imgPos[1]) / self.imgSize[1],
+            -(kivyPosPe[1] - self.imgPos[1]) / self.imgSize[1],
         ]
         return imPos
 
@@ -530,14 +516,13 @@ class SolvePage(FloatLayout):
         pageInst.setLoadInfo(0, "Loading Image")
         pageInst.imgPath = imgPath
         pageInst.img = ImageProcessing.loadImg(pageInst.imgPath)
-        pageInst.img = np.flip(pageInst.img, 0)
+
         if pageInst.caller.pages["LineUp"].angle != 0:
+            print("rotated", 3-pageInst.caller.pages["LineUp"].angle)
             pageInst.img = cv2.rotate(
-                pageInst.img, pageInst.caller.pages["LineUp"].angle - 1
+                pageInst.img, 3-pageInst.caller.pages["LineUp"].angle
             )
-        # cv2.imshow("image given", pageInst.img)
-        # cv2.waitKey()
-        # cv2.destroyAllWindows()
+
         grid, gridPlus, allGrids = ImageProcessing.processImage(
             pageInst.img, pos, debug=False, progressCallback=pageInst.setLoadInfo
         )

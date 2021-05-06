@@ -33,9 +33,6 @@ class ImageProcessing:
             fy=ImageProcessing.shrinkRatio,
         )
         newImg = ImageProcessing.preProcessImg(smallImg, debug=debug)
-        # cv2.imshow("cropped image", smallImg)
-        # cv2.waitKey()
-        # cv2.destroyAllWindows()
         grid, letters, allGrids = ImageProcessing.findLetters(
             newImg, debug, progressCallback
         )
@@ -266,10 +263,10 @@ class ImageProcessing:
             )
         else:
             raise Exception("cropToRect given no kwarg")
-        cropPos = ImageProcessing.fixCropPos(p1, p2)
+        cropPos = ImageProcessing.checkCropPos(p1, p2)
         return img[cropPos[2] : cropPos[3], cropPos[0] : cropPos[1]]
 
-    def fixCropPos(p1, p2):
+    def checkCropPos(p1, p2):
         # makes the first of each axis of the cropPos to be the smallest
         return [
             min(p1[0], p2[0]),
