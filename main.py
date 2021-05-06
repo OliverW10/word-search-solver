@@ -256,15 +256,20 @@ class LineUpPage(FloatLayout):
     def squareToImg(self, x, y):
         # converts a pos from the movable square to image based position
 
+        # the position in the window in pixels
         kivyPosPx = self.movingLayout.to_parent(
             x, y
-        )  # the position in the window in pixels
-        kivyPosPe = np.array(kivyPosPx) / np.array(
-            Window.size
-        )  # the position in the window as a percent
+        )
+
+        # the position in the window as a percent
+        kivyPosPe = [
+            kivyPosPx[0]/Window.size[0],
+            1-(kivyPosPx[1]/Window.size[1])
+        ]
+
         imPos = [
             (kivyPosPe[0] - self.imgPos[0]) / self.imgSize[0],
-            -(kivyPosPe[1] - self.imgPos[1]) / self.imgSize[1],
+            (kivyPosPe[1] - self.imgPos[1]) / self.imgSize[1],
         ]
         return imPos
 
