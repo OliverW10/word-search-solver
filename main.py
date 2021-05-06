@@ -607,6 +607,19 @@ class FinalPage(FloatLayout):
 
 
 class SolverApp(App):
+    def post_build_init(self,ev):
+        if platform == 'android':
+            import android
+            android.map_key(android.KEYCODE_BACK, 1001)
+
+        Window.bind(on_keyboard=self.key_handler)
+
+    def key_handler(self, window, keycode1, keycode2, text, modifiers):
+        if keycode1 == 27 or keycode1 == 1001:
+            self.backPage()
+            return True
+        return False
+
     def addPage(self, name, pageClass):
         self.pages[name] = pageClass(self)
         screen = Screen(name=name)
@@ -614,9 +627,12 @@ class SolverApp(App):
         self.screen_manager.add_widget(screen)
 
     def build(self):
-        self.screen_manager = ScreenManager()
+        self.bind(on_start=self.post_build_init)
+
         self.lastPages = []
         self.pages = {}
+
+        self.screen_manager = ScreenManager()
 
         self.addPage("Start", StartPage)
 
@@ -634,9 +650,10 @@ class SolverApp(App):
 
         return self.screen_manager
 
-    def goToPage(self, name):
+    def goToPage(self, name, backing = False):
         print(f"going to {name} page")
-        self.lastPages.append(self.screen_manager.current)
+        if backing == False:
+            self.lastPages.append(self.screen_manager.current)
         self.screen_manager.current = name
 
         try:
@@ -652,8 +669,9 @@ class SolverApp(App):
             ...
 
     def backPage(self):
+        print("back page called", self.lastPages)
         if len(self.lastPages) >= 1:
-            self.screen_manager.current = self.lastPages[-1]
+            self.goToPage(self.lastPages[-1], backing=True)
             del self.lastPages[-1]
 
 
