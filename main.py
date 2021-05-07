@@ -118,6 +118,7 @@ class LoadPage(FloatLayout):
             print("non file selected", path)
 
     def stopped(self):
+        print("called close on the file thing")
         self.file_thing.close()
 
     def started(self):
@@ -654,14 +655,15 @@ class SolverApp(App):
         print(f"going to {name} page")
         if backing == False:
             self.lastPages.append(self.screen_manager.current)
-        self.screen_manager.current = name
 
         try:
-            self.pages[self.lastPages[-1]].stopped()
+            self.pages[self.screen_manager.current].stopped()
         except AttributeError:
             # print("no start function")
             ...
 
+
+        self.screen_manager.current = name
         try:
             self.pages[name].started()
         except AttributeError:
