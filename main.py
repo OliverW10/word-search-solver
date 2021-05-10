@@ -131,8 +131,7 @@ class CameraPage(FloatLayout):
         self.caller = caller
         super().__init__(**kwargs)
 
-        self.camera = XCamera(play=False)
-        self.camera.play = False
+        self.camera = XCamera(play=True)
         self.camera.on_picture_taken = self.picture_taken
         self.add_widget(self.camera)
         if platform == "android":
@@ -167,9 +166,11 @@ class CameraPage(FloatLayout):
 
     def started(self):
         self.camera.force_landscape()
+        self.camera.play = True
 
     def stopped(self):
         self.camera.restore_orientation()
+        self.camera.play = False
 
 
 ### 3 ###
@@ -610,8 +611,8 @@ class FinalPage(FloatLayout):
 class SolverApp(App):
     def post_build_init(self,ev):
         if platform == 'android':
-            import android
-            android.map_key(android.KEYCODE_BACK, 1001)
+            from anroid import map_key, KEYCODE_BACK
+            map_key(KEYCODE_BACK, 1001)
 
         Window.bind(on_keyboard=self.key_handler)
 
