@@ -134,7 +134,8 @@ class CameraPage(FloatLayout):
         self.camera.on_picture_taken = self.picture_taken
         self.add_widget(self.camera)
         if platform == "android":
-            from os.path import join, mkdir
+            from os.path import join
+            from os import mkdir
 
             path = join(primary_external_storage_path(), "Pictures", "WordSearchSolver")
             if not isdir(path):
