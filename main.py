@@ -24,7 +24,6 @@ import time
 import numpy as np
 import image_to_numpy
 from os.path import isfile, isdir
-import time
 import cv2
 
 from solvers import Solvers
@@ -36,7 +35,7 @@ import threading
 # kivy.require("2.0")
 if platform == "android":
     print("requested permissions")
-    from android.permissions import request_permissions, request_permission, Permission
+    from android.permissions import request_permissions, Permission
     from android.storage import primary_external_storage_path
 
     request_permissions(
@@ -135,13 +134,12 @@ class CameraPage(FloatLayout):
         self.camera.on_picture_taken = self.picture_taken
         self.add_widget(self.camera)
         if platform == "android":
-            from os.path import join
-            from os import mkdir
+            from os.path import join, mkdir
 
             path = join(primary_external_storage_path(), "Pictures", "WordSearchSolver")
             if not isdir(path):
                 try:
-                    os.mkdir(path)
+                    mkdir(path)
                 except OSError:
                     print("Creation of the directory %s failed" % path)
                 else:
@@ -609,18 +607,12 @@ class FinalPage(FloatLayout):
 
 
 class SolverApp(App):
-    def post_build_init(self,ev):
-        if platform == 'android':
-            from anroid import map_key, KEYCODE_BACK
-            map_key(KEYCODE_BACK, 1001)
-
-        Window.bind(on_keyboard=self.key_handler)
-
-    def key_handler(self, window, keycode1, keycode2, text, modifiers):
-        if keycode1 == 27 or keycode1 == 1001:
+    def key_handler(self, window, key, scancode, codepoint, modifiers):
+        if key == 27:
             self.backPage()
             return True
-        return False
+        else:
+            return False
 
     def addPage(self, name, pageClass):
         self.pages[name] = pageClass(self)
@@ -629,7 +621,7 @@ class SolverApp(App):
         self.screen_manager.add_widget(screen)
 
     def build(self):
-        self.bind(on_start=self.post_build_init)
+        Window.bind(on_keyboard=self.key_handler)
 
         self.lastPages = []
         self.pages = {}
