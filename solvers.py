@@ -99,7 +99,7 @@ class Solvers:
 
 
 class PositionSolver:
-    def wordSearch(gridPlus, words):
+    def wordSearch(lettersPlus, words):
         """
         will be slower by less suseptable to mistakes in gridSize
         psudocode
@@ -113,8 +113,23 @@ class PositionSolver:
         """
         foundWords = {}
         for word in words:
-            pass
+            for letter in lettersPlus:
 
+
+    def nextLetter(letters, targetLetter, dist, angle, angleDiff):
+        '''
+        searches for a letter that meets requirements
+        
+        params
+        letters: all the letters found
+        targetLetter: the letter your looking for
+        dist: the maxium distance allowed
+        angle: the angle around which to search
+        angleDiff: maxium allowed misalignment from angle
+        '''
+        for letter in letters:
+            if targetLetter in letters.allLetters:
+                if dist
 
 if __name__ == "__main__":
 
