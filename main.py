@@ -181,7 +181,7 @@ class LineUpPage(FloatLayout):
     def __init__(self, caller, **kwargs):
         self.caller = caller
         super().__init__(**kwargs)
-        self.imgFilename = "temp_img.png"
+        self.imgFilename = "None"
         self.angle = 0
 
         self.movingLayout = Scatter()
@@ -192,19 +192,17 @@ class LineUpPage(FloatLayout):
             text="Continue", size_hint=(0.15, 0.1), pos_hint={"x": 0.85, "y": 0.9}
         )
         self.add_widget(self.continueButton)
-        # self.continueButton.bind(on_release = self.continued)
         self.on_touch_up = self.buttonTouchCheck
 
         self.refreshButton = MDRaisedButton(
             text="Rotate", size_hint=(0.125, 0.075), pos_hint={"x": 0, "y": 0}
         )
         self.add_widget(self.refreshButton)
-        # self.refreshButton.bind(on_release = self.rotate)
 
         self.squareMargin = 0.1
-        self.createImgTexture()
+        # self.createImgTexture()
         Window.bind(on_resize=lambda *args: self.makeSquare(self.squareMargin))
-        self.makeSquare(self.squareMargin)
+        # self.makeSquare(self.squareMargin)
 
     def buttonTouchCheck(self, touch, *args):
         # called in place of the usual collitions to make sure the buttons have top priority
@@ -214,9 +212,6 @@ class LineUpPage(FloatLayout):
             self.rotate()
         else:
             return self.movingLayout.on_touch_up(touch)
-
-    def refresh(self, *args):
-        self.setImage(self.imgFilename)
 
     def rotate(self, *args):
         # changes the rotatorion value and reloads the image completely
@@ -230,17 +225,16 @@ class LineUpPage(FloatLayout):
         # loads and renders the given image and the line-up square on top of it
         print("path given: ", img)
         self.imgFilename = img
-        self.createImgTexture(img)
-        self.makeSquare(self.squareMargin)
+        
 
-    def checkSet(self):
-        return self.imgFilename != "temp_img.png"
+    def started(self):
+        self.createImgTexture(self.imgFilename)
+        self.makeSquare(self.squareMargin)
 
     def continued(self, *args):
         # called when the continued button is pressed to go to the next page
-        if self.checkSet:
-            self.caller.pages["Words"].setStuff(self.imgFilename, self.getPosCv())
-            self.caller.goToPage("Words")
+        self.caller.pages["Words"].setStuff(self.imgFilename, self.getPosCv())
+        self.caller.goToPage("Words")
 
     def getPosCv(self):
         # gets the coordinates of each corner of the line-up square  with the origin top left
@@ -274,15 +268,12 @@ class LineUpPage(FloatLayout):
         ]
         return imPos
 
-    def createImgTexture(self, source="temp_img.png"):
+    def createImgTexture(self, source):
         """
         loads an image and turns it into a kivy texture
         also rotated it based on self.angle which is an int from 0-3
         """
-        if source != "temp_img.png":
-            print("source for createImgTexture was", source)
-        else:
-            print("didnt get source for createImgTexture")
+        print("source for createImgTexture was", source)
         # loads image into numpy array
         self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8)
         self.imgNp = np.flip(self.imgNp, 0)
@@ -304,62 +295,63 @@ class LineUpPage(FloatLayout):
         """
         draws the line-up square to the movingLayout canvas and the imgText generated in createImgTexture on this pages canvas
         """
-        self.canvas.clear()
-        with self.canvas:
-            # find if the width/height ratio of the image is more or less than the window
-            imgRatio = self.imgNp.shape[1] / self.imgNp.shape[0]
-            if (Window.size[0] / Window.size[1]) > (
-                self.imgNp.shape[1] / self.imgNp.shape[0]
-            ):
-                height = Window.size[1]
-                width = (
-                    height * imgRatio
-                )  # set the height to fill the window and width to scale according to the image ratio
-                self.imgSize = [width / Window.size[0], height / Window.size[1]]
-            else:
-                width = Window.size[0]
-                height = width * (
-                    self.imgNp.shape[0] / self.imgNp.shape[1]
-                )  # set the width to fill the window and height to scale according to the ratio (backwards)
-                self.imgSize = [width / Window.size[0], height / Window.size[1]]
-            x = (Window.size[0] / 2) - (
-                self.imgSize[0] * Window.size[0]
-            ) / 2  # sets position so that the image is centerd as:
-            y = (Window.size[1] / 2) - (
-                self.imgSize[1] * Window.size[1]
-            ) / 2  # the middle of the window minus half the image size
-            self.imgPos = [x / Window.size[0], y / Window.size[1]]
-            Rectangle(
-                pos=(x, y),
-                size=(
-                    self.imgSize[0] * Window.size[0],
-                    self.imgSize[1] * Window.size[1],
-                ),
-                texture=self.imgTex,
-            )
-            Color(1.0, 0, 0)
+        if self.caller.currentPage() == self:
+            self.canvas.clear()
+            with self.canvas:
+                # find if the width/height ratio of the image is more or less than the window
+                imgRatio = self.imgNp.shape[1] / self.imgNp.shape[0]
+                if (Window.size[0] / Window.size[1]) > (
+                    self.imgNp.shape[1] / self.imgNp.shape[0]
+                ):
+                    height = Window.size[1]
+                    width = (
+                        height * imgRatio
+                    )  # set the height to fill the window and width to scale according to the image ratio
+                    self.imgSize = [width / Window.size[0], height / Window.size[1]]
+                else:
+                    width = Window.size[0]
+                    height = width * (
+                        self.imgNp.shape[0] / self.imgNp.shape[1]
+                    )  # set the width to fill the window and height to scale according to the ratio (backwards)
+                    self.imgSize = [width / Window.size[0], height / Window.size[1]]
+                x = (Window.size[0] / 2) - (
+                    self.imgSize[0] * Window.size[0]
+                ) / 2  # sets position so that the image is centerd as:
+                y = (Window.size[1] / 2) - (
+                    self.imgSize[1] * Window.size[1]
+                ) / 2  # the middle of the window minus half the image size
+                self.imgPos = [x / Window.size[0], y / Window.size[1]]
+                Rectangle(
+                    pos=(x, y),
+                    size=(
+                        self.imgSize[0] * Window.size[0],
+                        self.imgSize[1] * Window.size[1],
+                    ),
+                    texture=self.imgTex,
+                )
+                Color(1.0, 0, 0)
 
-            Color(1.0, 1.0, 1.0)
+                Color(1.0, 1.0, 1.0)
 
-        self.remove_widget(self.movingLayout)
-        self.movingLayout.canvas.clear()
-        with self.movingLayout.canvas:
-            Color(0, 1.0, 0)
-            size = min(
-                self.imgSize[0] * Window.size[0], self.imgSize[1] * Window.size[1]
-            ) * (
-                0.5 - margin / 2
-            )  # half of the side length of the line-up square
-            midX, midY = Window.size[0] / 2, Window.size[1] / 2
-            Line(rectangle=(midX - size, midY - size, size * 2, size * 2), width=3)
-        self.add_widget(self.movingLayout)
+            self.remove_widget(self.movingLayout)
+            self.movingLayout.canvas.clear()
+            with self.movingLayout.canvas:
+                Color(0, 1.0, 0)
+                size = min(
+                    self.imgSize[0] * Window.size[0], self.imgSize[1] * Window.size[1]
+                ) * (
+                    0.5 - margin / 2
+                )  # half of the side length of the line-up square
+                midX, midY = Window.size[0] / 2, Window.size[1] / 2
+                Line(rectangle=(midX - size, midY - size, size * 2, size * 2), width=3)
+            self.add_widget(self.movingLayout)
 
-        # have to remove and re add the widgets so that their collisions get processed first
-        self.remove_widget(self.continueButton)
-        self.add_widget(self.continueButton)
+            # have to remove and re add the widgets so that their collisions get processed first
+            self.remove_widget(self.continueButton)
+            self.add_widget(self.continueButton)
 
-        self.remove_widget(self.refreshButton)
-        self.add_widget(self.refreshButton)
+            self.remove_widget(self.refreshButton)
+            self.add_widget(self.refreshButton)
 
 
 ### 4 ###
@@ -658,6 +650,7 @@ class SolverApp(App):
 
 
         self.screen_manager.current = name
+
         try:
             self.pages[name].started()
         except AttributeError:
@@ -669,6 +662,12 @@ class SolverApp(App):
         if len(self.lastPages) >= 1:
             self.goToPage(self.lastPages[-1], backing=True)
             del self.lastPages[-1]
+
+    def currentPage(self):
+        return self.pages[self.currentPageName()]
+
+    def currentPageName(self):
+        return self.screen_manager.current
 
 
 class TestApp(App):
