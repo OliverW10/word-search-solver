@@ -9,6 +9,17 @@ import time
 def clampPos(x, y, imgSize):
     return max(min(x, imgSize[1]), 0), max(min(y, imgSize[0]), 0)
 
+@dataclass
+class Letter:
+    # class to store the data for a letter
+    letter: str
+    position: list
+    allLetters: list
+
+    @property
+    def letterStr() -> str:
+        return string.ascii_letters[int(letters[i])]
+
 class ImageProcessing:
     # both as a multiple of the image size
     minContourSize = 0.0001
