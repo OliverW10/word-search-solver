@@ -153,9 +153,6 @@ class CameraPage(FloatLayout):
         self.add_widget(self.title)
 
     def picture_taken(self, filename):
-        while not isfile(filename):
-            print("waiting for file to save")
-            time.sleep(0.1)
         self.leave(filename)
 
     def leave(self, filename):
@@ -200,9 +197,7 @@ class LineUpPage(FloatLayout):
         self.add_widget(self.refreshButton)
 
         self.squareMargin = 0.1
-        # self.createImgTexture()
         Window.bind(on_resize=lambda *args: self.makeSquare(self.squareMargin))
-        # self.makeSquare(self.squareMargin)
 
     def buttonTouchCheck(self, touch, *args):
         # called in place of the usual collitions to make sure the buttons have top priority
@@ -273,6 +268,11 @@ class LineUpPage(FloatLayout):
         loads an image and turns it into a kivy texture
         also rotated it based on self.angle which is an int from 0-3
         """
+        if not isfile(source):
+            print("wasnt a file yet")
+            Clock.schedule_once(lambda x:self.createImgTexture(source), 1)
+            source = "temp_img.png"
+
         print("source for createImgTexture was", source)
         # loads image into numpy array
         self.imgNp = image_to_numpy.load_image_file(source).astype(np.uint8)
