@@ -362,7 +362,7 @@ class WordsPage(FloatLayout):
         self.textinput = TextInput(
             hint_text="Enter words",
             multiline=False,
-            size_hint=(0.8, 0.1),
+            size_hint=(0.65, 0.1),
             pos_hint={"x": 0.05, "y": 0.85},
             text_validate_unfocus=False,
         )
@@ -370,7 +370,7 @@ class WordsPage(FloatLayout):
         self.add_widget(self.textinput)
 
         self.addButton = MDRaisedButton(
-            text="Add Words", size_hint=(0.1, 0.1), pos_hint={"x": 0.85, "y": 0.85}
+            text="Add", size_hint=(0.2, 0.1), pos_hint={"x": 0.75, "y": 0.85}
         )
         self.addButton.bind(on_release=self.addWord)  # pressed add button
         self.add_widget(self.addButton)
@@ -385,7 +385,7 @@ class WordsPage(FloatLayout):
         self.add_widget(self.wordsLayout)
 
         self.continueButton = MDRaisedButton(
-            text="Continue", pos_hint={"x": 0.89, "y": 0.01}, size_hint=(0.1, 0.1)
+            text="Continue", pos_hint={"x": 0.79, "y": 0.01}, size_hint=(0.2, 0.1)
         )
         self.add_widget(self.continueButton)
         self.continueButton.bind(on_release=self.continueToSolve)
