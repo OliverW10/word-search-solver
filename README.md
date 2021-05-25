@@ -10,4 +10,5 @@ You can copy the APK file in /bin to your android phone and run it to install th
 TO DO:
  - Make Solver Based on position not grid
 
- The code is a bit of a mess
+When cloning use `git clone --depth 1 https://github.com/OliverW10/word-search-solver.git` to reduce size
+to get the test images use `git submodule init` and then `git submodule update`
