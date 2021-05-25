@@ -1,0 +1,3 @@
+[submodule "wss-test-images"]
+	path = wss-test-images
+	url = https://github.com/OliverW10/wss-test-images
