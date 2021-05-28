@@ -103,7 +103,7 @@ class LoadPage(FloatLayout):
             )
             self.path = join(primary_external_storage_path(), "DCIM", "Camera")
         else:
-            self.path = "./test_images/fulls"
+            self.path = "./wss-test-images/fulls"
         # self.add_widget(self.file_thing)
 
     def select_path(self, path, *args):
@@ -215,6 +215,7 @@ class LineUpPage(FloatLayout):
         if self.angle >= 4:
             self.angle = 0
         self.setImage(self.imgFilename)
+        self.started()
 
     def setImage(self, img, camera=False):
         # loads and renders the given image and the line-up square on top of it

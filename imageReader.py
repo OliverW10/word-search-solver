@@ -12,6 +12,9 @@ class ImageProcessing:
     minContourSize = 0.0001
     maxContourSize = 0.1
 
+    # increases the constant untill there are less than maxContoursNum contours
+    maxContoursNum = 2000
+
     maxBoxSize = 1
     minBoxSize = 0
 
@@ -32,7 +35,14 @@ class ImageProcessing:
             fx=ImageProcessing.shrinkRatio,
             fy=ImageProcessing.shrinkRatio,
         )
-        newImg = ImageProcessing.preProcessImg(smallImg, debug=debug)
+        c = 10
+        newImg = ImageProcessing.preProcessImg(smallImg, constant=c, debug=debug)
+        print("c= 10 contours num", ImageProcessing.checkContours(newImg))
+        while ImageProcessing.checkContours(newImg) > ImageProcessing.maxContoursNum:
+            c += 10
+            newImg = ImageProcessing.preProcessImg(smallImg, constant=c, debug=debug)
+            print("c= ", c, "contours num", ImageProcessing.checkContours(newImg))
+
         grid, letters, allGrids = ImageProcessing.findLetters(
             newImg, debug, progressCallback
         )
@@ -63,7 +73,7 @@ class ImageProcessing:
             or rect2[1] + rect2[3] < rect1[1]
         )
 
-    def preProcessImg(img, debug=False):
+    def preProcessImg(img, constant=10, debug=False):
         if debug:
             timeCheckpoints.append(["start preProcessImg", time.time()])
         size = img.shape  # height first
@@ -76,12 +86,18 @@ class ImageProcessing:
             cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv2.THRESH_BINARY,
             int(int(size[0] * 0.075) / 2) * 2 + 1,
-            4,
+            constant,
             img,
         )
         if debug:
             timeCheckpoints.append(["finished preProcessImg", time.time()])
         return img
+
+    def checkContours(img):
+        contours, hierarchy = cv2.findContours(
+            img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
+        return len(contours)
 
     def findLetters(img, debug=False, callback=lambda *x: x):
         # cv2.imshow("findLetters image", img)
