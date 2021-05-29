@@ -6,6 +6,8 @@ from letterReader import LetterReader
 import image_to_numpy
 import time
 
+def clampPos(x, y, imgSize):
+    return max(min(x, imgSize[1]), 0), max(min(y, imgSize[0]), 0)
 
 class ImageProcessing:
     # both as a multiple of the image size
@@ -35,6 +37,7 @@ class ImageProcessing:
             fx=ImageProcessing.shrinkRatio,
             fy=ImageProcessing.shrinkRatio,
         )
+        # incriments c (the constant for adaptive threshold) untill there are less than maxContoursNum contours
         c = 10
         newImg = ImageProcessing.preProcessImg(smallImg, constant=c, debug=debug)
         print("c= 10 contours num", ImageProcessing.checkContours(newImg))
@@ -268,17 +271,16 @@ class ImageProcessing:
                 )
         return grid, gridPlus, gridPossibilities
 
-    def cropToRect(img, **kwargs):
-        if "pos" in kwargs:
-            posNp = np.array(kwargs["pos"])
-            p1 = (int(posNp[0][0] * img.shape[1]), int(posNp[0][1] * img.shape[0]))
-            p2 = (int(posNp[2][0] * img.shape[1]), int(posNp[2][1] * img.shape[0]))
-        elif "rect" in kwargs:
-            rect = np.array(kwargs["rect"]) * np.array(
-                [img.shape[1], img.shape[0], img.shape[1], img.shape[0]]
-            )
-        else:
-            raise Exception("cropToRect given no kwarg")
+    def cropToRect(img, pos):
+        # takes the positions of the four to crop to
+        posNp = np.array(pos)
+        # gets the pos of the two opposet corners
+        p1 = (int(posNp[0][0] * img.shape[1]), int(posNp[0][1] * img.shape[0]))
+        p2 = (int(posNp[2][0] * img.shape[1]), int(posNp[2][1] * img.shape[0]))
+        # clamps them into the bounds of the iamge
+        p1 = clampPos(*p1, img.shape)
+        p2 = clampPos(*p2, img.shape)
+        # orders them so the top left one is first and bottom right is second
         cropPos = ImageProcessing.checkCropPos(p1, p2)
         return img[cropPos[2] : cropPos[3], cropPos[0] : cropPos[1]]
 
