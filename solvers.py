@@ -3,6 +3,7 @@ import random
 import copy
 import time
 import numpy as np
+import math
 
 
 class Solvers:
@@ -99,7 +100,14 @@ class Solvers:
 
 
 class PositionSolver:
-    def wordSearch(lettersPlus, words):
+    MAX_DIST_PER = 0.05 # maximum distance to search for letters, in percent of image size
+    MAX_ANGLE = math.pi*0.4 # max allowed misalightment from set angle, in radians
+
+    def __init__(self, imageSize):
+
+        self.MAX_DIST = self.MAX_DIST_PER*math.sqrt(imageSize[0]*imageSize[1])
+        self.sMAX_DIST = math.sqrt(self.MAX_DIST) # to avoid a square root when finding distance
+    def wordSearch(self, lettersPlus, words):
         """
         will be slower by less suseptable to mistakes in gridSize
         psudocode
@@ -111,25 +119,53 @@ class PositionSolver:
                         repeat for each letter
                         can use how much it follows the angle in confidence aswell
         """
+        self.letters = lettersPlus
+
         foundWords = {}
         for word in words:
-            for letter in lettersPlus:
+            foundWords[word] = self.findWord(word)
+
+        return foundWords
+
+    def findWord(self, targetWord):
+        possibleWords = []
+
+        # find all instances of first letter
+        firsts = [[l] for l in self.letters if targetWord[0] in l.allLetters]
+
+        # find all of second letters that are nearby the first at any angle
+        for first in firsts:
+            nxt = nextLetter(targetWord[1], first.position, anyAngle = True)
+            for second in nxt:
+                possibleWords.append([first, second])
+
+        # continue for all other letters of the word with a similar angle
+        for letterNum in range(2, len(targetWord))
+            for word in possibleWords:
+                wordAngle = math.atan2(word[0].position[1] - word[1].position[1] ,  word[0].position[0] - word[1].position[0])
+                res = nextLetter(targetWord[letterNum])
 
 
-    def nextLetter(letters, targetLetter, dist, angle, angleDiff):
+    def nextLetter(self, targetLetter, prevPos, angle = 0, anyAngle = False):
         '''
         searches for a letter that meets requirements
         
-        params
-        letters: all the letters found
-        targetLetter: the letter your looking for
-        dist: the maxium distance allowed
-        angle: the angle around which to search
-        angleDiff: maxium allowed misalignment from angle
+        finds letters that could be targetLetter and are:
+        within self.MAX_DIST from pos
+        within self.MAX_ANGLE_DIFF from angle
         '''
-        for letter in letters:
-            if targetLetter in letters.allLetters:
-                if dist
+        goodLetters = []
+        for letter in self.letters:
+            if targetLetter in letter.allLetters:
+                if (letter.position[0]-prevPos[0])**2 + (letter.position[1]-prevPos[1])**2 < self.sMAX_DIST:
+                    if not anyAngle:
+                        nowAngle = math.atan2(letter.position[1]-prevPos[1], letter.position[0]-prevPos[0])
+                        if abs(newAngle-prevAngle) < self.MAX_ANGLE or abs(newAngle-prevAngle)-math.pi*2 < self.MAX_ANGLE:
+                            goodLetters.append(letter)
+                    else:
+                        goodLetters.append(letter)
+
+        return goodLetters
 
 if __name__ == "__main__":
 
