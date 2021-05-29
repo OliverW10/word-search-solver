@@ -140,7 +140,7 @@ class PositionSolver:
                 possibleWords.append([first, second])
 
         # continue for all other letters of the word with a similar angle
-        for letterNum in range(2, len(targetWord))
+        for letterNum in range(2, len(targetWord)):
             for word in possibleWords:
                 wordAngle = math.atan2(word[0].position[1] - word[1].position[1] ,  word[0].position[0] - word[1].position[0])
                 res = nextLetter(targetWord[letterNum])
@@ -165,7 +165,9 @@ class PositionSolver:
                     else:
                         goodLetters.append(letter)
 
-        return goodLetters
+        # if it finds more than one letter that meets the requirements it ignores the one that its less confident about
+        # NOTE: dont know if allLetters is string letters of numbers, check later
+        return max(goodLetters, key=lambda x:x.allLetters.count(targetLetter))
 
 if __name__ == "__main__":
 
