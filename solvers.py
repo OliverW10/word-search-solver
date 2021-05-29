@@ -104,9 +104,9 @@ class PositionSolver:
     MAX_ANGLE = math.pi*0.4 # max allowed misalightment from set angle, in radians
 
     def __init__(self, imageSize):
-
         self.MAX_DIST = self.MAX_DIST_PER*math.sqrt(imageSize[0]*imageSize[1])
         self.sMAX_DIST = math.sqrt(self.MAX_DIST) # to avoid a square root when finding distance
+
     def wordSearch(self, lettersPlus, words):
         """
         will be slower by less suseptable to mistakes in gridSize
@@ -143,8 +143,22 @@ class PositionSolver:
         for letterNum in range(2, len(targetWord)):
             for word in possibleWords:
                 wordAngle = math.atan2(word[0].position[1] - word[1].position[1] ,  word[0].position[0] - word[1].position[0])
-                res = nextLetter(targetWord[letterNum])
+                res = nextLetter(targetWord[letterNum], word[-1].position, angle=wordAngle)
+                if res != False:
+                    word.append(res)
 
+            # removes words which didnt continue
+            possibleWords = [word for word in possibleWords if (len(word) == letterNum+1)]
+
+        # gets confidences for each possible word
+        wordConfs = []
+        for i, word in enumerate(possibleWords):
+            # foe ach word sum the count of what letter is meant to be in each spot
+            wordConfs.append(sum( [let.allLetters.count(targetWord[i]) for let in word] ) /len(word))
+
+        # gets the index of the most confident word
+        bestIdx = wordConfs.index( max(wordConfs) )
+        return possibleWords[bestIdx]
 
     def nextLetter(self, targetLetter, prevPos, angle = 0, anyAngle = False):
         '''
@@ -155,9 +169,13 @@ class PositionSolver:
         within self.MAX_ANGLE_DIFF from angle
         '''
         goodLetters = []
+        # checks every letter
         for letter in self.letters:
+            # checks if its the target letter
             if targetLetter in letter.allLetters:
+                # check sif its withiin distance
                 if (letter.position[0]-prevPos[0])**2 + (letter.position[1]-prevPos[1])**2 < self.sMAX_DIST:
+
                     if not anyAngle:
                         nowAngle = math.atan2(letter.position[1]-prevPos[1], letter.position[0]-prevPos[0])
                         if abs(newAngle-prevAngle) < self.MAX_ANGLE or abs(newAngle-prevAngle)-math.pi*2 < self.MAX_ANGLE:
@@ -165,9 +183,12 @@ class PositionSolver:
                     else:
                         goodLetters.append(letter)
 
-        # if it finds more than one letter that meets the requirements it ignores the one that its less confident about
+        # if it finds more than one letter that meets the requirements it takes the one its most confident about
         # NOTE: dont know if allLetters is string letters of numbers, check later
-        return max(goodLetters, key=lambda x:x.allLetters.count(targetLetter))
+        if len(goodLetters) >= 1:
+            return max(goodLetters, key=lambda x:x.allLetters.count(targetLetter))
+        else:
+            return False
 
 if __name__ == "__main__":
 
