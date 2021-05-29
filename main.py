@@ -25,6 +25,7 @@ import numpy as np
 import image_to_numpy
 from os.path import isfile, isdir
 import cv2
+import string
 
 from solvers import Solvers
 from imageReader import ImageProcessing
@@ -396,7 +397,7 @@ class WordsPage(FloatLayout):
 
     def testWord(self, word):
         # tests if should add a word
-        if word in self.words or len(word.strip()) <= 1:
+        if word in self.words or len(word) < 1:
             return False
         else:
             return True
@@ -404,8 +405,9 @@ class WordsPage(FloatLayout):
     def addWord(self, *args):
         # creates a new WordWidget and adds word to self.words
         # is a callback for self.addButton.on_release
-        if self.testWord(self.textinput.text):
-            self.words.append(self.textinput.text)
+        word = "".join([l for l in self.textinput.text.lower() if l in string.ascii_letters])
+        if self.testWord(word):
+            self.words.append(word)
             self.textinput.text = ""
 
             self.wordsWidgets.append(
