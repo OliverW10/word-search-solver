@@ -20,6 +20,7 @@ from kivy.clock import Clock
 from kivymd.uix.button import MDIconButton
 from kivymd.uix.filemanager import MDFileManager
 from kivy.clock import mainthread
+import plyer
 import time
 import numpy as np
 import image_to_numpy
@@ -131,29 +132,31 @@ class CameraPage(FloatLayout):
         self.caller = caller
         super().__init__(**kwargs)
 
-        self.camera = XCamera(play=True)
-        self.camera.on_picture_taken = self.picture_taken
-        self.add_widget(self.camera)
         if platform == "android":
             from os.path import join
             from os import mkdir
 
-            path = join(primary_external_storage_path(), "Pictures", "WordSearchSolver")
-            if not isdir(path):
+            self.path = join(primary_external_storage_path(), "Pictures", "WordSearchSolver")
+            if not isdir(self.path):
                 try:
-                    mkdir(path)
+                    mkdir(self.path)
                 except OSError:
-                    print("Creation of the directory %s failed" % path)
+                    print("Creation of the directory %s failed" % self.path)
                 else:
-                    print("Successfully created the directory %s " % path)
+                    print("Successfully created the directory %s " % self.path)
+        else:
+            self.camera = XCamera(play=True)
+            self.camera.on_picture_taken = self.picture_taken
+            self.add_widget(self.camera)
 
-            self.camera.directory = path
-
-        self.title = Label(text="Try to get the grid flat and square-on")
-        self.title.size_hint = (1, 0.1)
-        self.add_widget(self.title)
+            self.title = Label(text="Try to get the grid flat and square-on")
+            self.title.size_hint = (1, 0.1)
+            self.add_widget(self.title)
 
     def picture_taken(self, filename):
+        self.leave(filename)
+
+    def android_callback(self, filename):
         self.leave(filename)
 
     def leave(self, filename):
@@ -162,12 +165,18 @@ class CameraPage(FloatLayout):
         self.caller.goToPage("LineUp")
 
     def started(self):
-        self.camera.force_landscape()
-        self.camera.play = True
+        if platform == "android":
+            plyer.camera.take_picture(self.android_callback, self.path)
+        else:
+            self.camera.force_landscape()
+            self.camera.play = True
 
     def stopped(self):
-        self.camera.restore_orientation()
-        self.camera.play = False
+        if platform == "android":
+            print("left camera android")
+        else:
+            self.camera.restore_orientation()
+            self.camera.play = False
 
 
 ### 3 ###
