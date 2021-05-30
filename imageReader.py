@@ -5,6 +5,7 @@ import random
 from letterReader import LetterReader
 import image_to_numpy
 import time
+from dataclasses import dataclass
 
 def clampPos(x, y, imgSize):
     return max(min(x, imgSize[1]), 0), max(min(y, imgSize[0]), 0)
@@ -16,9 +17,8 @@ class Letter:
     position: list
     allLetters: list
 
-    @property
-    def letterStr() -> str:
-        return string.ascii_letters[int(letters[i])]
+    def letterStr(self) -> chr:
+        return string.ascii_letters[int(self.letter)]
 
 class ImageProcessing:
     # both as a multiple of the image size

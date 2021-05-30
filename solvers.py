@@ -4,6 +4,7 @@ import copy
 import time
 import numpy as np
 import math
+from statistics import variance
 
 
 class Solvers:
@@ -98,13 +99,21 @@ class Solvers:
             for letterIdx in possibilities
         )
 
+def dist(p1, p2):
+    return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 class PositionSolver:
-    MAX_DIST_PER = 0.05 # maximum distance to search for letters, in percent of image size
+    MAX_DIST_PER = 2 # maximum distance to search for letters, in percent of ideal dist
     MAX_ANGLE = math.pi*0.4 # max allowed misalightment from set angle, in radians
 
-    def __init__(self, imageSize):
-        self.MAX_DIST = self.MAX_DIST_PER*math.sqrt(imageSize[0]*imageSize[1])
+    # weights to determin which word gets selected
+    LETTER_WEIGHT = 1
+    DIST_WEIGHT = 0.2 # total distance
+    DIST_VARIANCE_WEIGHT = 1 # letter distances variance
+    ANGLE_WEIGHT = 0
+
+    def __init__(self, idealDist):
+        self.MAX_DIST = self.MAX_DIST_PER*idealDist
         self.sMAX_DIST = math.sqrt(self.MAX_DIST) # to avoid a square root when finding distance
 
     def wordSearch(self, lettersPlus, words):
@@ -153,11 +162,18 @@ class PositionSolver:
         # gets confidences for each possible word
         wordConfs = []
         for i, word in enumerate(possibleWords):
-            # foe ach word sum the count of what letter is meant to be in each spot
-            wordConfs.append(sum( [let.allLetters.count(targetWord[i]) for let in word] ) /len(word))
+            # foe each word sum the count of what letter is meant to be in each spot
+            letterConf = sum( [let.allLetters.count(targetWord[i]) for let in word] ) /len(word)
+
+            totalDistConf = dist(word[0].position, word[-1].position)
+
+            dists = [dist(word[l].position, word[l+1].position) for l in range(len(word)-1)]
+            distVarianceConf = variance(dists)
+
+            wordConfs.append(letterConf*self.LETTER_WEIGHT + totalDistConf*self.DIST_WEIGHT + distVarianceConf*self.DIST_VARIANCE_WEIGHT)
 
         # gets the index of the most confident word
-        bestIdx = wordConfs.index( max(wordConfs) )
+        bestIdx = wordConfs.index(max(wordConfs))
         return possibleWords[bestIdx]
 
     def nextLetter(self, targetLetter, prevPos, angle = 0, anyAngle = False):
@@ -184,9 +200,9 @@ class PositionSolver:
                         goodLetters.append(letter)
 
         # if it finds more than one letter that meets the requirements it takes the one its most confident about
-        # NOTE: dont know if allLetters is string letters of numbers, check later
         if len(goodLetters) >= 1:
-            return max(goodLetters, key=lambda x:x.allLetters.count(targetLetter))
+            targetLetterN = string.ascii_letters.index(targetLetter)
+            return max(goodLetters, key=lambda x:x.allLetters.count(targetLetterN))
         else:
             return False
 
