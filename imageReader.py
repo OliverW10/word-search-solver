@@ -214,56 +214,21 @@ class ImageProcessing:
         )
         if debug:
             timeCheckpoints.append(["finished letter classification", time.time()])
+
         # combine the letters, their positions and the confidence and removes all badCnts
+        callback(10, "Collecting letters")
         lettersPlus = []
         for i in range(len(letters)):
             if not i in badCnts:
-                lettersPlus.append(
-                    (
-                        string.ascii_letters[int(letters[i])],
-                        letterPositions[i],
-                        int(letters[i]),
-                        neighbours[i],
-                    )
-                )
-                if debug:
-                    xI, yI, wI, hI = letterPositions[i]
-                    x, y, w, h = (
-                        xI * img.shape[1],
-                        yI * img.shape[0],
-                        wI * img.shape[1],
-                        hI * img.shape[0],
-                    )
-                    cv2.rectangle(
-                        drawImg, (int(x), int(y)), (int(x + w), int(y + h)), 20, 3
-                    )
-
-        # use the among of found contuors to determin the size of the grid
-        # print("letters num before: ", len(letterPositions))
-        # print("letters num after: ", len(lettersPlus))
-        gridSize = round(len(lettersPlus) ** 0.5)
-        print("gridSize: ", gridSize)
-        callback(10, "Forming Grid")
-        # position all letters in grid
-        grid = []
-        gridPlus = []
-        gridPossibilities = []
-        YsortedLetters = sorted(lettersPlus, key=lambda x: x[1][1])
-        for row in range(gridSize):
-            rowLettersPlus = sorted(
-                YsortedLetters[row * gridSize : (row + 1) * gridSize],
-                key=lambda x: x[1][0],
-            )
-            rowLetters = [letter[0] for letter in rowLettersPlus]
-            rowPossibilities = [letter[3] for letter in rowLettersPlus]
-            # print(rowLetters)
-            grid.append(rowLetters)
-            gridPlus.append(rowLettersPlus)
-            gridPossibilities.append(rowPossibilities)
+                lettersPlus.append(Letter(
+                    letter=string.ascii_letters[int(letters[i])],
+                    position=letterPositions[i],
+                    allLetters=neighbours[i]
+                ))
         if debug:
-            timeCheckpoints.append(["organised letters into grid", time.time()])
+            timeCheckpoints.append(["create Letter classes", time.time()])
 
-        return grid, gridPlus, gridPossibilities
+        return lettersPlus
 
     def makeGridFull(grid, gridPlus, gridPossibilities):
         gridSize = len(grid[0])

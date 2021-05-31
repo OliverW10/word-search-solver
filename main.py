@@ -27,7 +27,7 @@ from os.path import isfile, isdir
 import cv2
 import string
 
-from solvers import Solvers
+from solvers import PositionSolver
 from imageReader import ImageProcessing
 from annotator import Annotator
 
@@ -524,13 +524,17 @@ class SolvePage(FloatLayout):
                 pageInst.img, 3-pageInst.caller.pages["LineUp"].angle
             )
 
-        grid, gridPlus, allGrids = ImageProcessing.processImage(
+        allLetters = ImageProcessing.processImage(
             pageInst.img, pos, debug=False, progressCallback=pageInst.setLoadInfo
         )
         pageInst.setLoadInfo(10, "Finding Words")
-        foundWords = Solvers.wordSearch(allGrids, words, True)
+
+        idealDist = math.sqrt(len(allLetters)) / math.sqrt(pageInst.img.shape[0]+pageInst.img.shape[1])
+        solver = PositionSolver(idealDist)
+        foundWords = PositionSolver.wordSearch(allLetters, words)
+
         pageInst.setLoadInfo(10, "Annotating Image")
-        outImg = Annotator.annotate(pageInst.img, gridPlus, pos, foundWords)
+        outImg = Annotator.annotate(pageInst.img, pos, foundWords)
         pageInst.setLoadInfo(10, "Done")
         pageInst.outImg = outImg
 
