@@ -57,11 +57,11 @@ class ImageProcessing:
             newImg = ImageProcessing.preProcessImg(smallImg, constant=c, debug=debug)
             print("c= ", c, "contours num", ImageProcessing.checkContours(newImg))
 
-        grid, letters, allGrids = ImageProcessing.findLetters(
+        letters = ImageProcessing.findLetters(
             newImg, debug, progressCallback
         )
 
-        return ImageProcessing.makeGridFull(grid, letters, allGrids)
+        return letters
 
     def boxOverlap(box1, box2):
         # finds the total area of overlap between two rects (x, y, w, h)
@@ -223,29 +223,12 @@ class ImageProcessing:
                 lettersPlus.append(Letter(
                     letter=string.ascii_letters[int(letters[i])],
                     position=letterPositions[i],
-                    allLetters=neighbours[i]
+                    allLetters=neighbours.astype(np.uint8)[i]
                 ))
         if debug:
             timeCheckpoints.append(["create Letter classes", time.time()])
 
         return lettersPlus
-
-    def makeGridFull(grid, gridPlus, gridPossibilities):
-        gridSize = len(grid[0])
-        emptySquare = (" ", [0, 0, 0, 0], 53, [53] * len(gridPlus[0][0][-1]))
-        for i in range(gridSize):
-            if i < len(grid):
-                while len(grid[i]) < gridSize:
-                    grid[i].append(" ")
-                    gridPlus[i].append(emptySquare)
-                    gridPossibilities[i].append([27] * len(gridPossibilities[0][0]))
-            else:
-                grid.append([" "] * gridSize)
-                gridPlus.append([emptySquare] * gridSize)
-                gridPossibilities.append(
-                    [[27] * len(gridPossibilities[0][0])] * gridSize
-                )
-        return grid, gridPlus, gridPossibilities
 
     def cropToRect(img, pos):
         # takes the positions of the four to crop to

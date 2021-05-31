@@ -26,6 +26,7 @@ import image_to_numpy
 from os.path import isfile, isdir
 import cv2
 import string
+import math
 
 from solvers import PositionSolver
 from imageReader import ImageProcessing
@@ -529,12 +530,12 @@ class SolvePage(FloatLayout):
         )
         pageInst.setLoadInfo(10, "Finding Words")
 
-        idealDist = math.sqrt(len(allLetters)) / math.sqrt(pageInst.img.shape[0]+pageInst.img.shape[1])
+        idealDist = abs(pos[0][0]-pos[2][0]) / math.sqrt(len(allLetters))
         solver = PositionSolver(idealDist)
-        foundWords = PositionSolver.wordSearch(allLetters, words)
+        foundWords = solver.wordSearch(allLetters, words)
 
         pageInst.setLoadInfo(10, "Annotating Image")
-        outImg = Annotator.annotate(pageInst.img, pos, foundWords)
+        outImg = Annotator.annotate(pageInst.img, pos, foundWords, idealDist = idealDist)
         pageInst.setLoadInfo(10, "Done")
         pageInst.outImg = outImg
 

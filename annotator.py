@@ -4,8 +4,9 @@ import math
 
 
 class Annotator:
+    
     @staticmethod
-    def annotate(img, gridPlus, cropPos, words):
+    def annotate(img, cropPos, words, idealDist):
         print("annotator words", words)
         drawImg = img.copy()
         print("image size", drawImg.shape)
@@ -29,29 +30,20 @@ class Annotator:
         print("p1", p1, "    p2", p2)
         for word in words.keys():
             if len(words[word]) >= 1:
-                wordPos = max(words[word], key=lambda x: x["conf"])[
-                    "position"
-                ]  # chooses word with highest confidence
-                letterRects = [
-                    gridPlus[wordPos[0][0]][wordPos[0][1]][1],
-                    gridPlus[wordPos[1][0]][wordPos[1][1]][1],
-                ]
-                letterSize = (
-                    letterRects[0][2]
-                    + letterRects[0][3]
-                    + letterRects[1][2]
-                    + letterRects[1][3]
-                ) / 5  # by 5 beacuse the rect is bigger than the letter
+                # average letter size
+                letterSize = sum([x.position[2] for x in words[word]])/len(word)
+                letterSize = letterSize * 0.95
 
                 # the centers of the first and lest letters
                 letterPoints = [
                     [
-                        letterRects[0][0] + letterRects[0][2] / 2,
-                        letterRects[0][1] + letterRects[0][3] / 2,
+                        words[word][0].position[0] + words[word][0].position[2]/2,
+                        words[word][0].position[1] + words[word][0].position[3]/2
+
                     ],
                     [
-                        letterRects[1][0] + letterRects[1][2] / 2,
-                        letterRects[1][1] + letterRects[1][3] / 2,
+                        words[word][-1].position[0] + words[word][-1].position[2]/2,
+                        words[word][-1].position[1] + words[word][-1].position[3]/2
                     ],
                 ]
 
@@ -100,6 +92,9 @@ class Annotator:
                     (0, 255, 255),
                     math.ceil(img.shape[0] / 500),
                 )
+
+                print("ideal dist", idealDist)
+                cv2.circle(drawImg, unCropPos(letterPoints[0]), int(unCropNum(idealDist)), (255, 0, 0), int(img.shape[0]/500))
 
                 rad = unCropNum(letterSize)
                 drawImg = cv2.ellipse(
