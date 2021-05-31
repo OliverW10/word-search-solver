@@ -103,18 +103,20 @@ def dist(p1, p2):
     return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 class PositionSolver:
-    MAX_DIST_PER = 2 # maximum distance to search for letters, in percent of ideal dist
-    MAX_ANGLE = math.pi*0.4 # max allowed misalightment from set angle, in radians
+    MAX_DIST_PER = 2.3 # maximum distance to search for letters, in percent of ideal dist
+    MAX_ANGLE = math.pi*0.2 # max allowed misalightment from set angle, in radians
 
     # weights to determin which word gets selected
     LETTER_WEIGHT = 1
     DIST_WEIGHT = 0.2 # total distance
     DIST_VARIANCE_WEIGHT = 1 # letter distances variance
-    ANGLE_WEIGHT = 0
+    EVEN_WEIGHT = 1 # how near to being perfectly horizontal, vertical or diagonal the word is, not implimented
+    ANGLE_WEIGHT = 0 # how far away the word is from a straight line, not implimented
 
     def __init__(self, idealDist):
+        self.idealDist = idealDist
         self.MAX_DIST = self.MAX_DIST_PER*idealDist
-        self.sMAX_DIST = math.sqrt(self.MAX_DIST) # to avoid a square root when finding distance
+        self.sMAX_DIST = self.MAX_DIST**2 # to avoid a square root when finding distance
 
     def wordSearch(self, lettersPlus, words):
         """
@@ -132,27 +134,34 @@ class PositionSolver:
 
         foundWords = {}
         for word in words:
-            foundWords[word] = self.findWord(word)
-
+            output = self.findWord(word)
+            if type(output) != bool:
+                foundWords[word] = output
+            else:
+                print(f"couldnt find word {word}")
         return foundWords
+
+    def toNum(self, let):
+        return string.ascii_letters.index(let.lower())
 
     def findWord(self, targetWord):
         possibleWords = []
 
         # find all instances of first letter
-        firsts = [[l] for l in self.letters if targetWord[0] in l.allLetters]
+        firstLetterN = self.toNum(targetWord[0])
+        firsts = [l for l in self.letters if (firstLetterN in l.allLetters) or (firstLetterN+26 in l.allLetters)]
 
         # find all of second letters that are nearby the first at any angle
         for first in firsts:
-            nxt = nextLetter(targetWord[1], first.position, anyAngle = True)
-            for second in nxt:
-                possibleWords.append([first, second])
+            nxt = self.nextLetter(targetWord[1], first.position, anyAngle = True)
+            if type(nxt) != bool:
+                possibleWords.append([first, nxt])
 
         # continue for all other letters of the word with a similar angle
         for letterNum in range(2, len(targetWord)):
             for word in possibleWords:
                 wordAngle = math.atan2(word[0].position[1] - word[1].position[1] ,  word[0].position[0] - word[1].position[0])
-                res = nextLetter(targetWord[letterNum], word[-1].position, angle=wordAngle)
+                res = self.nextLetter(targetWord[letterNum], word[-1].position, angle=wordAngle)
                 if res != False:
                     word.append(res)
 
@@ -162,10 +171,14 @@ class PositionSolver:
         # gets confidences for each possible word
         wordConfs = []
         for i, word in enumerate(possibleWords):
-            # foe each word sum the count of what letter is meant to be in each spot
-            letterConf = sum( [let.allLetters.count(targetWord[i]) for let in word] ) /len(word)
+            # for each word sum the count of what letter is meant to be in each spot
+            letterConf = sum([
+                list(let.allLetters).count(self.toNum(targetWord[n])) + 
+                list(let.allLetters).count(self.toNum(targetWord[n])+26)
+                for n, let in enumerate(word)] ) /len(word)
 
-            totalDistConf = dist(word[0].position, word[-1].position)
+            totalDist = dist(word[0].position, word[-1].position)
+            totalDistConf = abs((totalDist/len(targetWord))-self.idealDist)
 
             dists = [dist(word[l].position, word[l+1].position) for l in range(len(word)-1)]
             distVarianceConf = variance(dists)
@@ -173,8 +186,11 @@ class PositionSolver:
             wordConfs.append(letterConf*self.LETTER_WEIGHT + totalDistConf*self.DIST_WEIGHT + distVarianceConf*self.DIST_VARIANCE_WEIGHT)
 
         # gets the index of the most confident word
-        bestIdx = wordConfs.index(max(wordConfs))
-        return possibleWords[bestIdx]
+        if len(wordConfs) > 1:
+            bestIdx = wordConfs.index(max(wordConfs))
+            return possibleWords[bestIdx]
+        else:
+            return False
 
     def nextLetter(self, targetLetter, prevPos, angle = 0, anyAngle = False):
         '''
@@ -184,25 +200,32 @@ class PositionSolver:
         within self.MAX_DIST from pos
         within self.MAX_ANGLE_DIFF from angle
         '''
+        if type(targetLetter) == str:
+            targetLetterN = self.toNum(targetLetter) # turns the str letter into a num
+        elif type(targetLetter) == int:
+            targetLetterN = targetLetter%26
+
         goodLetters = []
         # checks every letter
         for letter in self.letters:
-            # checks if its the target letter
-            if targetLetter in letter.allLetters:
-                # check sif its withiin distance
-                if (letter.position[0]-prevPos[0])**2 + (letter.position[1]-prevPos[1])**2 < self.sMAX_DIST:
-
-                    if not anyAngle:
-                        nowAngle = math.atan2(letter.position[1]-prevPos[1], letter.position[0]-prevPos[0])
-                        if abs(newAngle-prevAngle) < self.MAX_ANGLE or abs(newAngle-prevAngle)-math.pi*2 < self.MAX_ANGLE:
+            # except the prev one
+            if not np.array_equal(letter.position, prevPos):
+                # checks if its the target letter
+                if (targetLetterN in letter.allLetters) or (targetLetterN+26 in letter.allLetters):
+                    # checks if its withiin distance
+                    if (letter.position[0]-prevPos[0])**2 + (letter.position[1]-prevPos[1])**2 < self.sMAX_DIST:
+                        if not anyAngle:
+                            newAngle = math.atan2(letter.position[1]-prevPos[1], letter.position[0]-prevPos[0])
+                            angleDiff = abs(newAngle-angle)
+                            if angleDiff < self.MAX_ANGLE or (angleDiff > math.pi*2-self.MAX_ANGLE and angleDiff < math.pi*2+self.MAX_ANGLE):
+                                print(angleDiff, "\tpassed\t",letter.position,"\t", prevPos)
+                                goodLetters.append(letter)
+                        else:
                             goodLetters.append(letter)
-                    else:
-                        goodLetters.append(letter)
 
         # if it finds more than one letter that meets the requirements it takes the one its most confident about
         if len(goodLetters) >= 1:
-            targetLetterN = string.ascii_letters.index(targetLetter)
-            return max(goodLetters, key=lambda x:x.allLetters.count(targetLetterN))
+            return max(goodLetters, key=lambda x:list(x.allLetters).count(targetLetterN) + list(x.allLetters).count(targetLetterN+26))
         else:
             return False
 
